@@ -101,3 +101,19 @@ jobs:
         with:
           name: form-screenshots
           path: sharex/screenshots/
+
+      - name: Checkout sharenux repo
+        uses: actions/checkout@v4
+        with:
+          path: sharenux
+
+      - name: Commit screenshots
+        run: |
+          cd sharenux
+          mkdir -p screenshots/ShareX
+          cp ../sharex/screenshots/*.png screenshots/ShareX/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add screenshots/ShareX
+          git commit -m "update ShareX form screenshots" || echo "No changes to commit"
+          git push
