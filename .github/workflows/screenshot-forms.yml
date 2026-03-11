@@ -209,11 +209,17 @@ jobs:
 
               static void Screenshot(Form form, string name)
               {
+                  Console.WriteLine($"Starting: {name}");
+                  Console.Out.Flush();
                   try
                   {
                       form.StartPosition = FormStartPosition.Manual;
                       form.Location = new Point(0, 0);
+                      Console.WriteLine($"  Showing: {name}");
+                      Console.Out.Flush();
                       form.Show();
+                      Console.WriteLine($"  Refreshing: {name}");
+                      Console.Out.Flush();
                       form.Refresh();
                       Application.DoEvents();
 
