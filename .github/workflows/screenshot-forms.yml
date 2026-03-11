@@ -41,6 +41,7 @@ jobs:
           using System.IO;
           using System.Linq;
           using System.Reflection;
+          using System.Runtime.InteropServices;
           using System.Windows.Forms;
           using ShareX;
           using ShareX.HelpersLib;
@@ -54,6 +55,10 @@ jobs:
 
           class Program
           {
+              [DllImport("user32.dll")]
+              static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+              const uint WM_CLOSE = 0x0010;
+
               [STAThread]
               static void Main()
               {
@@ -213,24 +218,21 @@ jobs:
                   Console.Out.Flush();
 
                   var done = false;
+                  IntPtr handle = IntPtr.Zero;
                   
-                  // Background thread to kill form after timeout
+                  // Capture handle as soon as it's created
+                  form.HandleCreated += (s, e) => handle = form.Handle;
+                  
+                  // Background thread to kill form after timeout using Win32 PostMessage
                   var killer = new System.Threading.Thread(() =>
                   {
                       System.Threading.Thread.Sleep(10000);
                       if (!done)
                       {
-                          Console.WriteLine($"TIMEOUT: {name} (skipping)");
+                          Console.WriteLine($"TIMEOUT: {name} (killing via PostMessage, handle={handle})");
                           Console.Out.Flush();
-                          try 
-                          { 
-                              form.BeginInvoke((Action)(() => 
-                              { 
-                                  form.Close(); 
-                                  form.Dispose(); 
-                              })); 
-                          } 
-                          catch { }
+                          if (handle != IntPtr.Zero)
+                              PostMessage(handle, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
                       }
                   });
                   killer.IsBackground = true;
