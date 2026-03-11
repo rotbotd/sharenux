@@ -58,10 +58,33 @@ namespace ShareX.HelpersLib
     public class LinearGradientBrush : Brush
     {
         private readonly SKPaint _paint;
+        private readonly SKPoint _start;
+        private readonly SKPoint _end;
         public override SKPaint Paint => _paint;
+
+        private ColorBlend? _interpolationColors;
+        public ColorBlend? InterpolationColors
+        {
+            get => _interpolationColors;
+            set
+            {
+                _interpolationColors = value;
+                if (value != null && value.Colors.Length > 0)
+                {
+                    _paint.Shader?.Dispose();
+                    _paint.Shader = SKShader.CreateLinearGradient(
+                        _start, _end,
+                        value.Colors,
+                        value.Positions,
+                        SKShaderTileMode.Clamp);
+                }
+            }
+        }
 
         public LinearGradientBrush(SKPoint start, SKPoint end, SKColor startColor, SKColor endColor)
         {
+            _start = start;
+            _end = end;
             _paint = new SKPaint
             {
                 Style = SKPaintStyle.Fill,
@@ -75,28 +98,27 @@ namespace ShareX.HelpersLib
 
         public LinearGradientBrush(SKRectI rect, SKColor startColor, SKColor endColor, LinearGradientMode mode)
         {
-            SKPoint start, end;
             switch (mode)
             {
                 case LinearGradientMode.Horizontal:
-                    start = new SKPoint(rect.Left, rect.Top);
-                    end = new SKPoint(rect.Right, rect.Top);
+                    _start = new SKPoint(rect.Left, rect.Top);
+                    _end = new SKPoint(rect.Right, rect.Top);
                     break;
                 case LinearGradientMode.Vertical:
-                    start = new SKPoint(rect.Left, rect.Top);
-                    end = new SKPoint(rect.Left, rect.Bottom);
+                    _start = new SKPoint(rect.Left, rect.Top);
+                    _end = new SKPoint(rect.Left, rect.Bottom);
                     break;
                 case LinearGradientMode.ForwardDiagonal:
-                    start = new SKPoint(rect.Left, rect.Top);
-                    end = new SKPoint(rect.Right, rect.Bottom);
+                    _start = new SKPoint(rect.Left, rect.Top);
+                    _end = new SKPoint(rect.Right, rect.Bottom);
                     break;
                 case LinearGradientMode.BackwardDiagonal:
-                    start = new SKPoint(rect.Right, rect.Top);
-                    end = new SKPoint(rect.Left, rect.Bottom);
+                    _start = new SKPoint(rect.Right, rect.Top);
+                    _end = new SKPoint(rect.Left, rect.Bottom);
                     break;
                 default:
-                    start = new SKPoint(rect.Left, rect.Top);
-                    end = new SKPoint(rect.Right, rect.Top);
+                    _start = new SKPoint(rect.Left, rect.Top);
+                    _end = new SKPoint(rect.Right, rect.Top);
                     break;
             }
 
@@ -105,7 +127,7 @@ namespace ShareX.HelpersLib
                 Style = SKPaintStyle.Fill,
                 IsAntialias = true,
                 Shader = SKShader.CreateLinearGradient(
-                    start, end,
+                    _start, _end,
                     new[] { startColor, endColor },
                     SKShaderTileMode.Clamp)
             };
