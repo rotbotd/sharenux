@@ -155,7 +155,7 @@ jobs:
                   // === Phase 1: Easy additions ===
                   Screenshot(new TrayForm(), "TrayForm");
                   Screenshot(new ImageEffectPackagerForm("{}", "TestEffect", "C:\\Effects"), "ImageEffectPackagerForm");
-                  Screenshot(new RegionCaptureForm(RegionCaptureMode.Default, new RegionCaptureOptions(), (Bitmap)testBitmap.Clone()), "RegionCaptureForm");
+                  // Screenshot(new RegionCaptureForm(RegionCaptureMode.Default, new RegionCaptureOptions(), (Bitmap)testBitmap.Clone()), "RegionCaptureForm"); // HANGS
                   Screenshot(new TaskSettingsForm(new TaskSettings(), true), "TaskSettingsForm");
                   Screenshot(new ClipboardUploadForm(new TaskSettings(), false), "ClipboardUploadForm");
                   Screenshot(new AfterCaptureForm(new TaskMetadata((Bitmap)testBitmap.Clone()), new TaskSettings()), "AfterCaptureForm");
