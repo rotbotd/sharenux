@@ -25,6 +25,9 @@ jobs:
           using System.IO;
           using System.Windows.Forms;
           using ShareX.HelpersLib;
+          using ShareX.MediaLib;
+          using ShareX.ScreenCaptureLib;
+          using ShareX.UploadersLib;
 
           class Program
           {
@@ -36,7 +39,7 @@ jobs:
 
                   Directory.CreateDirectory("screenshots");
 
-                  // Forms we can instantiate
+                  // ShareX.HelpersLib forms
                   Screenshot(new HashCheckerForm(), "HashCheckerForm");
                   Screenshot(new ClipboardViewerForm(), "ClipboardViewerForm");
                   Screenshot(new ColorPickerForm(Color.Red), "ColorPickerForm");
@@ -44,6 +47,21 @@ jobs:
                   Screenshot(new ErrorForm("Test Error", "Stack trace here...", null, null, false), "ErrorForm");
                   Screenshot(new MyMessageBox("Test message", "Title", MessageBoxButtons.OK), "MyMessageBox");
                   Screenshot(new PrintTextForm("Sample text to print", new PrintSettings()), "PrintTextForm");
+
+                  // ShareX.MediaLib forms
+                  Screenshot(new ImageSplitterForm(), "ImageSplitterForm");
+                  Screenshot(new ImageThumbnailerForm(), "ImageThumbnailerForm");
+
+                  // ShareX.ScreenCaptureLib forms
+                  Screenshot(new CanvasSizeForm(), "CanvasSizeForm");
+                  Screenshot(new ImageInsertForm(), "ImageInsertForm");
+
+                  // ShareX.UploadersLib forms
+                  Screenshot(new EmailForm(), "EmailForm");
+                  Screenshot(new JiraUpload(), "JiraUpload");
+                  Screenshot(new PuushLoginForm(), "PuushLoginForm");
+                  Screenshot(new CustomUploaderSyntaxTestForm(), "CustomUploaderSyntaxTestForm");
+                  Screenshot(new UserPassBox("Login", "", ""), "UserPassBox");
               }
 
               static void Screenshot(Form form, string name)
@@ -86,6 +104,9 @@ jobs:
             </PropertyGroup>
             <ItemGroup>
               <ProjectReference Include="..\ShareX.HelpersLib\ShareX.HelpersLib.csproj" />
+              <ProjectReference Include="..\ShareX.MediaLib\ShareX.MediaLib.csproj" />
+              <ProjectReference Include="..\ShareX.ScreenCaptureLib\ShareX.ScreenCaptureLib.csproj" />
+              <ProjectReference Include="..\ShareX.UploadersLib\ShareX.UploadersLib.csproj" />
             </ItemGroup>
           </Project>
           '@
