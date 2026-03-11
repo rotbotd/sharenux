@@ -24,6 +24,8 @@
             xorg.libXrandr
             xorg.libXi
             xorg.libXinerama
+            xorg.libICE
+            xorg.libSM
             fontconfig
             libxkbcommon
 
@@ -56,6 +58,8 @@
               pkgs.xorg.libXrandr
               pkgs.xorg.libXi
               pkgs.xorg.libXinerama
+              pkgs.xorg.libICE
+              pkgs.xorg.libSM
               pkgs.fontconfig
               pkgs.libxkbcommon
               pkgs.libglvnd

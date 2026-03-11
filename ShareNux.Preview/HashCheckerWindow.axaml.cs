@@ -11,8 +11,18 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ShareX.HelpersLib
+namespace ShareNux.Preview
 {
+    public enum HashType
+    {
+        CRC32,
+        MD5,
+        SHA1,
+        SHA256,
+        SHA384,
+        SHA512
+    }
+
     public partial class HashCheckerWindow : Window
     {
         private CancellationTokenSource? hashCts;
