@@ -1,0 +1,105 @@
+name: Screenshot Forms
+
+on:
+  workflow_dispatch:
+
+jobs:
+  screenshot:
+    runs-on: windows-latest
+    steps:
+      - name: Clone upstream ShareX
+        run: git clone --depth 1 https://github.com/ShareX/ShareX.git sharex
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Create screenshot tool
+        shell: pwsh
+        run: |
+          $code = @'
+          using System;
+          using System.Drawing;
+          using System.Drawing.Imaging;
+          using System.IO;
+          using System.Windows.Forms;
+          using ShareX.HelpersLib;
+
+          class Program
+          {
+              [STAThread]
+              static void Main()
+              {
+                  Application.EnableVisualStyles();
+                  Application.SetCompatibleTextRenderingDefault(false);
+
+                  Directory.CreateDirectory("screenshots");
+
+                  // Forms with parameterless constructors
+                  Screenshot(new HashCheckerForm(), "HashCheckerForm");
+                  Screenshot(new DebugForm(), "DebugForm");
+                  Screenshot(new ClipboardViewerForm(), "ClipboardViewerForm");
+                  Screenshot(new ColorPickerForm(Color.Red), "ColorPickerForm");
+                  Screenshot(new GradientPickerForm(new GradientInfo()), "GradientPickerForm");
+
+                  // Forms that need parameters - use defaults
+                  Screenshot(new ErrorForm("Test Error", "Stack trace here...", null, null, false), "ErrorForm");
+                  Screenshot(new MyMessageBox("Test message", "Title"), "MyMessageBox");
+              }
+
+              static void Screenshot(Form form, string name)
+              {
+                  try
+                  {
+                      form.StartPosition = FormStartPosition.Manual;
+                      form.Location = new Point(0, 0);
+                      form.Show();
+                      form.Refresh();
+                      Application.DoEvents();
+
+                      using (var bmp = new Bitmap(form.Width, form.Height))
+                      {
+                          form.DrawToBitmap(bmp, new Rectangle(0, 0, form.Width, form.Height));
+                          bmp.Save($"screenshots/{name}.png", ImageFormat.Png);
+                          Console.WriteLine($"Saved: {name}.png");
+                      }
+
+                      form.Close();
+                      form.Dispose();
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.WriteLine($"Failed {name}: {ex.Message}");
+                  }
+              }
+          }
+          '@
+          $code | Out-File -Encoding UTF8 "sharex/ScreenshotTool/Program.cs"
+
+          $csproj = @'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>WinExe</OutputType>
+              <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+              <UseWindowsForms>true</UseWindowsForms>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="..\ShareX.HelpersLib\ShareX.HelpersLib.csproj" />
+            </ItemGroup>
+          </Project>
+          '@
+          New-Item -ItemType Directory -Force -Path "sharex/ScreenshotTool"
+          $csproj | Out-File -Encoding UTF8 "sharex/ScreenshotTool/ScreenshotTool.csproj"
+
+      - name: Build and run screenshot tool
+        run: |
+          cd sharex
+          dotnet run --project ScreenshotTool/ScreenshotTool.csproj -c Release
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: form-screenshots
+          path: sharex/screenshots/
