@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System;
 using SkiaSharp;
 using Avalonia.Input;
 
