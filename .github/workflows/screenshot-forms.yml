@@ -152,28 +152,28 @@ jobs:
                   Screenshot(new StickerForm(new List<StickerPackInfo> { new StickerPackInfo() { Name = "Test" } }, 0), "StickerForm");
                   Screenshot(new CustomUploaderSettingsForm(new UploadersConfig()), "CustomUploaderSettingsForm");
 
-                  // === Phase 1: Easy additions ===
-                  Screenshot(new TrayForm(), "TrayForm");
-                  Screenshot(new ImageEffectPackagerForm("{}", "TestEffect", "C:\\Effects"), "ImageEffectPackagerForm");
-                  // Screenshot(new RegionCaptureForm(RegionCaptureMode.Default, new RegionCaptureOptions(), (Bitmap)testBitmap.Clone()), "RegionCaptureForm"); // HANGS
-                  Screenshot(new TaskSettingsForm(new TaskSettings(), true), "TaskSettingsForm");
-                  Screenshot(new ClipboardUploadForm(new TaskSettings(), false), "ClipboardUploadForm");
-                  Screenshot(new AfterCaptureForm(new TaskMetadata((Bitmap)testBitmap.Clone()), new TaskSettings()), "AfterCaptureForm");
+                  // === Phase 1: Easy additions (use lambdas) ===
+                  Screenshot(() => new TrayForm(), "TrayForm");
+                  Screenshot(() => new ImageEffectPackagerForm("{}", "TestEffect", "C:\\Effects"), "ImageEffectPackagerForm");
+                  // Screenshot(() => new RegionCaptureForm(RegionCaptureMode.Default, new RegionCaptureOptions(), (Bitmap)testBitmap.Clone()), "RegionCaptureForm"); // HANGS
+                  Screenshot(() => new TaskSettingsForm(new TaskSettings(), true), "TaskSettingsForm");
+                  Screenshot(() => new ClipboardUploadForm(new TaskSettings(), false), "ClipboardUploadForm");
+                  Screenshot(() => new AfterCaptureForm(new TaskMetadata((Bitmap)testBitmap.Clone()), new TaskSettings()), "AfterCaptureForm");
 
                   // TaskInfo forms
                   var taskSettings = new TaskSettings();
                   var taskInfo = new TaskInfo(taskSettings);
                   taskInfo.FilePath = "C:\\test\\screenshot.png";
-                  Screenshot(new AfterUploadForm(taskInfo), "AfterUploadForm");
-                  Screenshot(new BeforeUploadForm(taskInfo), "BeforeUploadForm");
+                  Screenshot(() => new AfterUploadForm(taskInfo), "AfterUploadForm");
+                  Screenshot(() => new BeforeUploadForm(taskInfo), "BeforeUploadForm");
 
                   // === Phase 2: History forms with temp SQLite ===
                   var tempDbPath = Path.Combine(Path.GetTempPath(), "test_history.db");
                   using (var historyManager = new HistoryManagerSQLite(tempDbPath))
                   {
-                      Screenshot(new HistoryForm(historyManager, new HistorySettings()), "HistoryForm");
-                      Screenshot(new ImageHistoryForm(historyManager, new ImageHistorySettings()), "ImageHistoryForm");
-                      Screenshot(new HistoryImportForm(historyManager, new List<HistoryItem>()), "HistoryImportForm");
+                      Screenshot(() => new HistoryForm(historyManager, new HistorySettings()), "HistoryForm");
+                      Screenshot(() => new ImageHistoryForm(historyManager, new ImageHistorySettings()), "ImageHistoryForm");
+                      Screenshot(() => new HistoryImportForm(historyManager, new List<HistoryItem>()), "HistoryImportForm");
                   }
                   try { File.Delete(tempDbPath); } catch { }
 
