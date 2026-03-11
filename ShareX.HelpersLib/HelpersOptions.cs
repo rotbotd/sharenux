@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.Collections.Generic;
+using SkiaSharp;
 
 namespace ShareX.HelpersLib
 {
@@ -37,7 +38,7 @@ namespace ShareX.HelpersLib
         public static bool UseAlternativeClipboardGetImage { get; set; } = false;
         public static bool RotateImageByExifOrientationData { get; set; } = true;
         public static string BrowserPath { get; set; } = "";
-        public static List<Color> RecentColors { get; set; } = new List<Color>();
+        public static List<SKColor> RecentColors { get; set; } = new List<SKColor>();
         public static string LastSaveDirectory { get; set; } = "";
         public static bool URLEncodeIgnoreEmoji { get; set; } = false;
         public static Dictionary<string, string> ShareXSpecialFolders { get; set; } = new Dictionary<string, string>();

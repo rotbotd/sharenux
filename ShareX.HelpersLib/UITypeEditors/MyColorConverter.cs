@@ -27,7 +27,8 @@ using System.ComponentModel;
 
 namespace ShareX.HelpersLib
 {
-    public class MyColorConverter : ColorConverter
+    // TODO: Implement SKColor conversion logic (was ColorConverter from System.Drawing)
+public class MyColorConverter : TypeConverter
     {
         public override bool GetStandardValuesSupported(ITypeDescriptorContext context)
         {
