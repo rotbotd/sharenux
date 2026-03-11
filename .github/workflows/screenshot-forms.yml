@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Clone upstream ShareX
-        run: git clone --depth 1 https://github.com/ShareX/ShareX.git sharex
+        run: git clone --depth 1 --branch v18.0.1 https://github.com/ShareX/ShareX.git sharex
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -42,9 +42,8 @@ jobs:
                   Screenshot(new ColorPickerForm(Color.Red), "ColorPickerForm");
                   Screenshot(new GradientPickerForm(new GradientInfo()), "GradientPickerForm");
                   Screenshot(new ErrorForm("Test Error", "Stack trace here...", null, null, false), "ErrorForm");
-                  Screenshot(new MyMessageBox("Test message", "Title"), "MyMessageBox");
-                  Screenshot(new InputBox("Enter value:", "Input"), "InputBox");
-                  Screenshot(new PrintTextForm(), "PrintTextForm");
+                  Screenshot(new MyMessageBox("Test message", "Title", MessageBoxButtons.OK), "MyMessageBox");
+                  Screenshot(new PrintTextForm("Sample text to print", new PrintSettings()), "PrintTextForm");
               }
 
               static void Screenshot(Form form, string name)
