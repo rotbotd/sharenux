@@ -14,11 +14,11 @@ jobs:
 
       - name: Check for forbidden phrases
         run: |
-          # Get the diff for this PR
-          git diff origin/main...HEAD > pr.diff
+          # Get the diff for this PR, excluding this workflow file
+          git diff origin/main...HEAD -- . ':!.github/workflows/no-todos.yml' > pr.diff
           
           # Check for forbidden phrases (case insensitive)
-          forbidden=("TODO" "FIXME" "for now" "for the time being" "temporarily" "stub")
+          forbidden=("T""ODO" "FIX""ME" "for n""ow" "for the time b""eing" "tempor""arily" "st""ub")
           found=0
           
           for phrase in "${forbidden[@]}"; do
@@ -34,7 +34,7 @@ jobs:
           
           if [ $found -eq 1 ]; then
             echo ""
-            echo "Fix these before merging. No TODOs, no stubs, no 'for now' - either do it properly or don't do it."
+            echo "Fix these before merging."
             exit 1
           else
             echo "✅ No forbidden phrases found"
