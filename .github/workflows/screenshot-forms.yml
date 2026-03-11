@@ -186,8 +186,8 @@ jobs:
                       new object[] { testImage });
                   ScreenshotPrivate<ResponseForm>("ResponseForm", new[] { typeof(UploadResult) },
                       new object[] { new UploadResult() });
-                  ScreenshotPrivate<ScrollingCaptureForm>("ScrollingCaptureForm", new[] { typeof(ScrollingCaptureOptions) },
-                      new object[] { new ScrollingCaptureOptions() });
+                  // ScreenshotPrivate<ScrollingCaptureForm>("ScrollingCaptureForm", new[] { typeof(ScrollingCaptureOptions) },
+                  //     new object[] { new ScrollingCaptureOptions() }); // HANGS
                   ScreenshotPrivate<UploadersConfigForm>("UploadersConfigForm", new[] { typeof(UploadersConfig) },
                       new object[] { new UploadersConfig() });
               }
