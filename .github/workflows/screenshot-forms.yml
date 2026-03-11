@@ -124,7 +124,7 @@ jobs:
                   Screenshot(() => new ApplicationSettingsForm(), "ApplicationSettingsForm");
                   Screenshot(() => new ClipboardFormatForm(), "ClipboardFormatForm");
                   Screenshot(() => new FirstTimeConfigForm(), "FirstTimeConfigForm");
-                  Screenshot(() => new FirstTimeUploadForm(), "FirstTimeUploadForm");
+                  // Screenshot(() => new FirstTimeUploadForm(), "FirstTimeUploadForm"); // HANGS
                   Screenshot(() => new InspectWindowForm(), "InspectWindowForm");
                   Screenshot(() => new QRCodeForm("https://example.com"), "QRCodeForm");
                   Screenshot(() => new QuickTaskMenuEditorForm(), "QuickTaskMenuEditorForm");
