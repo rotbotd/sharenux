@@ -2,10 +2,14 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <OutputType>Library</OutputType>
-    
-    
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  
+  <!-- Exclude WinForms designer files from compilation (keep for upstream merges) -->
+  <ItemGroup>
+    <Compile Remove="**/*.Designer.cs" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Resources.Extensions" Version="10.0.4" />
