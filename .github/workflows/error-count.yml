@@ -21,10 +21,11 @@ jobs:
 
       - name: Build and capture errors
         run: |
-          dotnet build ShareX.HelpersLib/ShareX.HelpersLib.csproj 2>&1 | grep "error CS" > .error-current || true
+          dotnet build ShareX.HelpersLib/ShareX.HelpersLib.csproj 2>&1 | grep "error CS" | sed "s|$(pwd)/||g" | sort > .error-current || true
 
       - name: Compare errors
         run: |
+          
           current=$(wc -l < .error-current)
           baseline=$(wc -l < .error-baseline)
           
