@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShareNux.Preview.ErrorWindow"
+        Title="ShareX - Error"
+        Width="584" Height="411" MinWidth="584" MinHeight="411"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True">
+    
+    <DockPanel Margin="8">
+        
+        <!-- Error message label at top -->
+        <TextBlock DockPanel.Dock="Top" x:Name="lblErrorMessage" Text="An error has occurred:" 
+                   TextWrapping="Wrap" Margin="0,0,0,8" FontSize="14"/>
+        
+        <!-- Button row at bottom - WrapPanel lets OK wrap to second row -->
+        <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+            <Button x:Name="btnSendBugReport" Content="Send bug report..." Width="150" Height="26" Margin="0,0,3,3"/>
+            <Button x:Name="btnOpenLogFile" Content="Open log file..." Width="150" Height="26" Margin="0,0,3,3"/>
+            <Button x:Name="btnContinue" Content="Continue" Width="120" Height="26" Margin="0,0,3,3"/>
+            <Button x:Name="btnClose" Content="Quit" Width="120" Height="26" Margin="0,0,3,3"/>
+            <Button x:Name="btnOK" Content="OK" Width="120" Height="26" Margin="0,0,3,3"/>
+        </WrapPanel>
+        
+        <!-- Exception details textbox fills remaining space -->
+        <TextBox x:Name="txtException" IsReadOnly="True" 
+                 AcceptsReturn="True" TextWrapping="Wrap"/>
+        
+    </DockPanel>
+</Window>

@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,210 +23,190 @@
 
 #endregion License Information (GPL v3)
 
-using ShareX.HelpersLib.Properties;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
+using SkiaSharp;
 using System;
 using System.ComponentModel;
 using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace ShareX.HelpersLib
 {
-    public partial class MyPictureBox : UserControl
+    public class MyPictureBox : UserControl
     {
-        public Image Image
+        private readonly Avalonia.Controls.Image imageControl;
+        private readonly TextBlock lblStatus;
+        private readonly TextBlock lblImageSize;
+        private readonly Grid mainGrid;
+        private readonly Border imageBorder;
+
+        private SKBitmap currentImage;
+        private Avalonia.Media.Imaging.Bitmap displayBitmap;
+        private bool isImageLoading;
+        private readonly object imageLoadLock = new object();
+
+        public SKBitmap Image
         {
-            get
-            {
-                return pbMain.Image;
-            }
+            get => currentImage;
             private set
             {
-                pbMain.Image = value;
+                currentImage?.Dispose();
+                currentImage = value;
+                UpdateDisplayBitmap();
             }
         }
 
-        private string text;
+        private string statusText = "";
 
-        [EditorBrowsable(EditorBrowsableState.Always), Browsable(true), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible), Bindable(true)]
-        public override string Text
+        public new string Text
         {
-            get
-            {
-                return text;
-            }
+            get => statusText;
             set
             {
-                text = value;
-
+                statusText = value;
                 if (string.IsNullOrEmpty(value))
                 {
-                    lblStatus.Visible = false;
+                    lblStatus.IsVisible = false;
                 }
                 else
                 {
                     lblStatus.Text = value;
-                    lblStatus.Visible = true;
+                    lblStatus.IsVisible = true;
                 }
             }
         }
 
-        public Color PictureBoxBackColor
-        {
-            get
-            {
-                return pbMain.BackColor;
-            }
-            set
-            {
-                pbMain.BackColor = value;
-            }
-        }
+        public SKColor PictureBoxBackColor { get; set; } = SKColors.Transparent;
 
-        private bool drawCheckeredBackground;
+        public bool DrawCheckeredBackground { get; set; }
 
-        [DefaultValue(false)]
-        public bool DrawCheckeredBackground
-        {
-            get
-            {
-                return drawCheckeredBackground;
-            }
-            set
-            {
-                drawCheckeredBackground = value;
-                UpdateCheckers();
-            }
-        }
-
-        [DefaultValue(false)]
         public bool FullscreenOnClick { get; set; }
 
-        [DefaultValue(false)]
         public bool EnableRightClickMenu { get; set; }
 
-        [DefaultValue(false)]
         public bool ShowImageSizeLabel { get; set; }
 
-        public new event MouseEventHandler MouseDown
-        {
-            add
-            {
-                pbMain.MouseDown += value;
-                lblStatus.MouseDown += value;
-            }
-            remove
-            {
-                pbMain.MouseDown -= value;
-                lblStatus.MouseDown -= value;
-            }
-        }
-
-        public new event MouseEventHandler MouseUp
-        {
-            add
-            {
-                pbMain.MouseUp += value;
-                lblStatus.MouseUp += value;
-            }
-            remove
-            {
-                pbMain.MouseUp -= value;
-                lblStatus.MouseUp -= value;
-            }
-        }
-
-        public new event MouseEventHandler MouseClick
-        {
-            add
-            {
-                pbMain.MouseClick += value;
-                lblStatus.MouseClick += value;
-            }
-            remove
-            {
-                pbMain.MouseClick -= value;
-                lblStatus.MouseClick -= value;
-            }
-        }
-
-        public new event MouseEventHandler MouseMove
-        {
-            add
-            {
-                pbMain.MouseMove += value;
-                lblStatus.MouseMove += value;
-            }
-            remove
-            {
-                pbMain.MouseMove -= value;
-                lblStatus.MouseMove -= value;
-            }
-        }
-
-        public bool IsValidImage
-        {
-            get
-            {
-                return !isImageLoading && pbMain.IsValidImage();
-            }
-        }
-
-        private readonly object imageLoadLock = new object();
-
-        private bool isImageLoading;
+        public bool IsValidImage => !isImageLoading && currentImage != null && currentImage.Width > 0 && currentImage.Height > 0;
 
         public MyPictureBox()
         {
-            InitializeComponent();
+            mainGrid = new Grid();
+
+            imageBorder = new Border
+            {
+                ClipToBounds = true
+            };
+
+            imageControl = new Avalonia.Controls.Image
+            {
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            };
+
+            imageBorder.Child = imageControl;
+
+            lblStatus = new TextBlock
+            {
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                IsVisible = false
+            };
+
+            lblImageSize = new TextBlock
+            {
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom,
+                Margin = new Thickness(0, 0, 0, 4),
+                IsVisible = false
+            };
+
+            mainGrid.Children.Add(imageBorder);
+            mainGrid.Children.Add(lblStatus);
+            mainGrid.Children.Add(lblImageSize);
+
+            Content = mainGrid;
+
             Text = "";
             UpdateTheme();
+
+            PointerPressed += OnPointerPressed;
+            PointerReleased += OnPointerReleased;
+            PointerMoved += OnPointerMoved;
+            PointerExited += OnPointerExited;
+        }
+
+        private void UpdateDisplayBitmap()
+        {
+            displayBitmap?.Dispose();
+            displayBitmap = null;
+
+            if (currentImage != null)
+            {
+                using var data = currentImage.Encode(SKEncodedImageFormat.Png, 100);
+                using var stream = new MemoryStream();
+                data.SaveTo(stream);
+                stream.Position = 0;
+                displayBitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+            }
+
+            imageControl.Source = displayBitmap;
             UpdateImageSizeLabel();
+            AutoSetStretch();
         }
 
         private void UpdateImageSizeLabel()
         {
             if (IsValidImage)
             {
-                lblImageSize.Text = $"{Image.Width} x {Image.Height}";
-                lblImageSize.Location = new Point((ClientSize.Width - lblImageSize.Width) / 2, ClientSize.Height - lblImageSize.Height + 1);
+                lblImageSize.Text = $"{currentImage.Width} x {currentImage.Height}";
             }
         }
 
         public void UpdateTheme()
         {
-            lblImageSize.BackColor = ShareXResources.Theme.BackgroundColor;
-            lblImageSize.ForeColor = ShareXResources.Theme.TextColor;
-
-            ShareXResources.ApplyCustomThemeToContextMenuStrip(cmsMenu);
+            lblImageSize.Background = new SolidColorBrush(ShareXResources.Theme.GetAvaloniaBackgroundColor());
+            lblImageSize.Foreground = new SolidColorBrush(ShareXResources.Theme.GetAvaloniaTextColor());
+            lblStatus.Foreground = new SolidColorBrush(ShareXResources.Theme.GetAvaloniaTextColor());
         }
 
         public void UpdateCheckers(bool forceUpdate = false)
         {
-            if (DrawCheckeredBackground)
+            if (DrawCheckeredBackground && ShareXResources.Theme.CheckerSize > 0)
             {
-                if (forceUpdate || pbMain.BackgroundImage == null || pbMain.BackgroundImage.Size != pbMain.ClientSize)
-                {
-                    if (pbMain.BackgroundImage != null) pbMain.BackgroundImage.Dispose();
+                var checker = ImageHelpers.CreateCheckerPattern(
+                    ShareXResources.Theme.CheckerSize,
+                    ShareXResources.Theme.CheckerSize,
+                    ShareXResources.Theme.CheckerColor,
+                    ShareXResources.Theme.CheckerColor2);
 
-                    if (ShareXResources.Theme.CheckerSize > 0)
-                    {
-                        pbMain.BackgroundImage = ImageHelpers.CreateCheckerPattern(ShareXResources.Theme.CheckerSize, ShareXResources.Theme.CheckerSize,
-                            ShareXResources.Theme.CheckerColor, ShareXResources.Theme.CheckerColor2);
-                    }
-                    else
-                    {
-                        pbMain.BackColor = ShareXResources.Theme.CheckerColor;
-                        pbMain.BackgroundImage = null;
-                    }
-                }
+                using var data = checker.Encode(SKEncodedImageFormat.Png, 100);
+                using var stream = new MemoryStream();
+                data.SaveTo(stream);
+                stream.Position = 0;
+
+                var checkerBitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+                imageBorder.Background = new ImageBrush(checkerBitmap)
+                {
+                    TileMode = TileMode.Tile,
+                    SourceRect = new RelativeRect(0, 0, checker.Width, checker.Height, RelativeUnit.Absolute)
+                };
+                checker.Dispose();
             }
             else
             {
-                if (pbMain.BackgroundImage != null) pbMain.BackgroundImage.Dispose();
-                pbMain.BackgroundImage = null;
+                imageBorder.Background = null;
             }
         }
 
-        public void LoadImage(Image img)
+        public void LoadImage(SKBitmap img)
         {
             lock (imageLoadLock)
             {
@@ -237,15 +217,13 @@ namespace ShareX.HelpersLib
                     if (img != null)
                     {
                         isImageLoading = true;
-                        Image = (Image)img.Clone();
+                        Image = img.Copy();
                         isImageLoading = false;
                     }
                     else
                     {
                         Image = null;
                     }
-
-                    AutoSetSizeMode();
                 }
             }
         }
@@ -260,7 +238,6 @@ namespace ShareX.HelpersLib
                     isImageLoading = true;
                     Image = ImageHelpers.LoadImage(filePath);
                     isImageLoading = false;
-                    AutoSetSizeMode();
                 }
             }
         }
@@ -269,7 +246,7 @@ namespace ShareX.HelpersLib
         {
             if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
             {
-                LoadImageAsync(filePath);
+                LoadImageAsync(filePath, isUrl: false);
             }
         }
 
@@ -277,139 +254,139 @@ namespace ShareX.HelpersLib
         {
             if (!string.IsNullOrEmpty(url) && !url.StartsWith("ftp://") && !url.StartsWith("ftps://"))
             {
-                LoadImageAsync(url);
+                LoadImageAsync(url, isUrl: true);
             }
         }
 
-        private void LoadImageAsync(string path)
+        private async void LoadImageAsync(string path, bool isUrl)
         {
             lock (imageLoadLock)
             {
-                if (!isImageLoading)
-                {
-                    Reset();
-                    isImageLoading = true;
-                    Text = Resources.MyPictureBox_LoadImageAsync_Loading_image___;
-                    lblStatus.Visible = true;
+                if (isImageLoading) return;
+                isImageLoading = true;
+            }
 
-                    try
-                    {
-                        pbMain.LoadAsync(path);
-                    }
-                    catch
-                    {
-                        lblStatus.Visible = false;
-                        isImageLoading = false;
-                        Reset();
-                    }
+            Reset();
+            Text = "Loading image...";
+
+            try
+            {
+                SKBitmap bitmap = null;
+
+                if (isUrl)
+                {
+                    using var client = new HttpClient();
+                    var data = await client.GetByteArrayAsync(path);
+                    bitmap = SKBitmap.Decode(data);
                 }
+                else
+                {
+                    bitmap = await Task.Run(() => SKBitmap.Decode(path));
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    Image = bitmap;
+                    Text = "";
+                });
+            }
+            catch
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    Text = "";
+                    Reset();
+                });
+            }
+            finally
+            {
+                isImageLoading = false;
             }
         }
 
         public void Reset()
         {
-            if (!isImageLoading && Image != null)
+            if (!isImageLoading && currentImage != null)
             {
-                Image temp = null;
-
-                try
-                {
-                    temp = Image;
-                    Image = null;
-                }
-                finally
-                {
-                    // If error happened in previous image load then PictureBox set image as error image and if we dispose it then error happens
-                    if (temp != null && temp != pbMain.ErrorImage && temp != pbMain.InitialImage)
-                    {
-                        temp.Dispose();
-                    }
-                }
+                Image = null;
             }
 
-            if (FullscreenOnClick && Cursor != Cursors.Default)
+            if (FullscreenOnClick)
             {
-                Cursor = Cursors.Default;
+                Cursor = Cursor.Default;
             }
         }
 
-        private void AutoSetSizeMode()
+        private void AutoSetStretch()
         {
             if (IsValidImage)
             {
-                if (Image.Width > pbMain.ClientSize.Width || Image.Height > pbMain.ClientSize.Height)
+                var bounds = Bounds;
+                if (currentImage.Width > bounds.Width || currentImage.Height > bounds.Height)
                 {
-                    pbMain.SizeMode = PictureBoxSizeMode.Zoom;
+                    imageControl.Stretch = Stretch.Uniform;
                 }
                 else
                 {
-                    pbMain.SizeMode = PictureBoxSizeMode.CenterImage;
+                    imageControl.Stretch = Stretch.None;
                 }
 
                 if (FullscreenOnClick)
                 {
-                    Cursor = Cursors.Hand;
+                    Cursor = new Cursor(StandardCursorType.Hand);
                 }
             }
 
             UpdateImageSizeLabel();
         }
 
-        private void PbMain_Resize(object sender, EventArgs e)
+        private void OnPointerPressed(object sender, PointerPressedEventArgs e)
         {
+            var point = e.GetCurrentPoint(this);
+
+            if (FullscreenOnClick && point.Properties.IsLeftButtonPressed && IsValidImage)
+            {
+                IsEnabled = false;
+                ImageViewer.ShowImage(currentImage);
+                IsEnabled = true;
+            }
+        }
+
+        private void OnPointerReleased(object sender, PointerReleasedEventArgs e)
+        {
+            var point = e.GetCurrentPoint(this);
+
+            if (EnableRightClickMenu && point.Properties.PointerUpdateKind == PointerUpdateKind.RightButtonReleased && IsValidImage)
+            {
+                var menu = new ContextMenu();
+                var copyItem = new MenuItem { Header = "Copy Image" };
+                copyItem.Click += (s, args) =>
+                {
+                    if (IsValidImage)
+                    {
+                        ClipboardHelpers.CopyImage(currentImage);
+                    }
+                };
+                menu.Items.Add(copyItem);
+                menu.Open(this);
+            }
+        }
+
+        private void OnPointerMoved(object sender, PointerEventArgs e)
+        {
+            lblImageSize.IsVisible = ShowImageSizeLabel && IsValidImage;
+        }
+
+        private void OnPointerExited(object sender, PointerEventArgs e)
+        {
+            lblImageSize.IsVisible = false;
+        }
+
+        protected override void OnSizeChanged(SizeChangedEventArgs e)
+        {
+            base.OnSizeChanged(e);
             UpdateCheckers();
-            AutoSetSizeMode();
-        }
-
-        private void PbMain_LoadCompleted(object sender, AsyncCompletedEventArgs e)
-        {
-            lblStatus.Visible = false;
-            isImageLoading = false;
-            if (e.Error == null) AutoSetSizeMode();
-        }
-
-        private void PbMain_LoadProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            if (isImageLoading && e.ProgressPercentage < 100)
-            {
-                Text = string.Format(Resources.MyPictureBox_pbMain_LoadProgressChanged_Loading_image___0__, e.ProgressPercentage);
-            }
-        }
-
-        private void PbMain_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (FullscreenOnClick && e.Button == MouseButtons.Left && IsValidImage)
-            {
-                pbMain.Enabled = false;
-                ImageViewer.ShowImage(Image);
-                pbMain.Enabled = true;
-            }
-        }
-
-        private void PbMain_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (EnableRightClickMenu && e.Button == MouseButtons.Right && IsValidImage)
-            {
-                cmsMenu.Show(pbMain, e.X + 1, e.Y + 1);
-            }
-        }
-
-        private void PbMain_MouseMove(object sender, MouseEventArgs e)
-        {
-            lblImageSize.Visible = ShowImageSizeLabel && IsValidImage && !new Rectangle(lblImageSize.Location, lblImageSize.Size).Contains(e.Location);
-        }
-
-        private void PbMain_MouseLeave(object sender, EventArgs e)
-        {
-            lblImageSize.Visible = false;
-        }
-
-        private void tsmiCopyImage_Click(object sender, EventArgs e)
-        {
-            if (IsValidImage)
-            {
-                ClipboardHelpers.CopyImage(Image);
-            }
+            AutoSetStretch();
         }
     }
 }

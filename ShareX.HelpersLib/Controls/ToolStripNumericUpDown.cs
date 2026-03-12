@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,44 +23,36 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
 using System;
 
 namespace ShareX.HelpersLib
 {
-    [ToolStripItemDesignerAvailability(ToolStripItemDesignerAvailability.ToolStrip)]
-    public class ToolStripNumericUpDown : ToolStripControlHost
+    // Avalonia replacement for WinForms ToolStripControlHost<NumericUpDown>
+    // In Avalonia, just use NumericUpDown directly in toolbars/panels
+    public class ToolStripNumericUpDown : NumericUpDown
     {
         public event EventHandler ValueChanged;
 
-        public NumericUpDown NumericUpDownControl
+        public NumericUpDown NumericUpDownControl => this;
+
+        public ToolStripNumericUpDown()
         {
-            get
+            Width = 60;
+            Minimum = 0;
+            Maximum = 100;
+            Increment = 1;
+        }
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+
+            if (change.Property == ValueProperty)
             {
-                return Control as NumericUpDown;
+                ValueChanged?.Invoke(this, EventArgs.Empty);
             }
-        }
-
-        public ToolStripNumericUpDown() : base(new NumericUpDown())
-        {
-        }
-
-        protected override void OnSubscribeControlEvents(Control control)
-        {
-            base.OnSubscribeControlEvents(control);
-
-            ((NumericUpDown)control).ValueChanged += new EventHandler(OnValueChanged);
-        }
-
-        protected override void OnUnsubscribeControlEvents(Control control)
-        {
-            base.OnUnsubscribeControlEvents(control);
-
-            ((NumericUpDown)control).ValueChanged -= new EventHandler(OnValueChanged);
-        }
-
-        public void OnValueChanged(object sender, EventArgs e)
-        {
-            ValueChanged?.Invoke(this, e);
         }
     }
 }

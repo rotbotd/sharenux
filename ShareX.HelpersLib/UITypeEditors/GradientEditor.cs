@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -24,56 +24,35 @@
 #endregion License Information (GPL v3)
 
 using System;
-using System.ComponentModel;
+using System.Threading.Tasks;
 
 namespace ShareX.HelpersLib
 {
-    public class GradientEditor : UITypeEditor
+    /// <summary>
+    /// Gradient editor for property editing. In Avalonia, this is used as a marker
+    /// and the actual editing is handled by custom property grid implementations.
+    /// </summary>
+    public class GradientEditor
     {
-        public override UITypeEditorEditStyle GetEditStyle(ITypeDescriptorContext context)
+        public static GradientInfo ShowGradientPicker(GradientInfo currentGradient)
         {
-            return UITypeEditorEditStyle.Modal;
+            var form = new GradientPickerForm(currentGradient.Copy());
+            if (form.ShowDialog() == DialogResult.OK)
+            {
+                return form.Gradient;
+            }
+            return null;
         }
 
-        public override object EditValue(ITypeDescriptorContext context, IServiceProvider provider, object value)
+        public static async Task<GradientInfo> ShowGradientPickerAsync(GradientInfo currentGradient)
         {
-            if (value.GetType() != typeof(GradientInfo))
+            var form = new GradientPickerForm(currentGradient.Copy());
+            var result = await form.ShowDialogAsync();
+            if (result == DialogResult.OK)
             {
-                return value;
+                return form.Gradient;
             }
-
-            IWindowsFormsEditorService svc = (IWindowsFormsEditorService)provider.GetService(typeof(IWindowsFormsEditorService));
-
-            if (svc != null)
-            {
-                GradientInfo gradient = (GradientInfo)value;
-
-                using (GradientPickerForm form = new GradientPickerForm(gradient.Copy()))
-                {
-                    if (svc.ShowDialog(form) == DialogResult.OK)
-                    {
-                        return form.Gradient;
-                    }
-                }
-            }
-
-            return value;
-        }
-
-        public override bool GetPaintValueSupported(ITypeDescriptorContext context)
-        {
-            return true;
-        }
-
-        public override void PaintValue(PaintValueEventArgs e)
-        {
-            Graphics g = e.Graphics;
-            GradientInfo gradient = (GradientInfo)e.Value;
-            if (gradient != null)
-            {
-                gradient.Draw(g, e.Bounds);
-            }
-            g.DrawRectangleProper(Pens.Black, e.Bounds);
+            return null;
         }
     }
 }

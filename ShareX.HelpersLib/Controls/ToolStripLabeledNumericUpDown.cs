@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,17 +23,69 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
 
 namespace ShareX.HelpersLib
 {
-    [ToolStripItemDesignerAvailability(ToolStripItemDesignerAvailability.MenuStrip | ToolStripItemDesignerAvailability.ContextMenuStrip)]
-    public class ToolStripLabeledNumericUpDown : ToolStripControlHost
+    // Avalonia replacement for WinForms ToolStripControlHost<LabeledNumericUpDown>
+    // A StackPanel containing a TextBlock label and NumericUpDown
+    public class ToolStripLabeledNumericUpDown : StackPanel
     {
-        public LabeledNumericUpDown Content => Control as LabeledNumericUpDown;
+        private readonly TextBlock label;
+        private readonly NumericUpDown numericUpDown;
 
-        public ToolStripLabeledNumericUpDown(string text) : base(new LabeledNumericUpDown())
+        public LabeledNumericUpDown Content => new LabeledNumericUpDown { Text = Text, Value = Value };
+
+        public string Text
         {
-            Content.Text = text;
+            get => label.Text;
+            set => label.Text = value;
+        }
+
+        public decimal? Value
+        {
+            get => numericUpDown.Value;
+            set => numericUpDown.Value = value;
+        }
+
+        public decimal? Minimum
+        {
+            get => numericUpDown.Minimum;
+            set => numericUpDown.Minimum = value;
+        }
+
+        public decimal? Maximum
+        {
+            get => numericUpDown.Maximum;
+            set => numericUpDown.Maximum = value;
+        }
+
+        public ToolStripLabeledNumericUpDown() : this(string.Empty) { }
+
+        public ToolStripLabeledNumericUpDown(string text)
+        {
+            Orientation = Orientation.Horizontal;
+            Spacing = 4;
+            VerticalAlignment = VerticalAlignment.Center;
+
+            label = new TextBlock
+            {
+                Text = text,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            numericUpDown = new NumericUpDown
+            {
+                Width = 60,
+                Minimum = 0,
+                Maximum = 100,
+                Increment = 1
+            };
+
+            Children.Add(label);
+            Children.Add(numericUpDown);
         }
     }
 }

@@ -1,0 +1,156 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShareNux.Preview.GradientPickerWindow"
+        Title="ShareX - Gradient picker"
+        Width="616" Height="321"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen">
+    
+    <Canvas>
+        <!-- Left column: action buttons -->
+        <Button x:Name="btnAdd" Canvas.Left="8" Canvas.Top="8" Width="112" Height="23" Content="Add"/>
+        <Button x:Name="btnRemove" Canvas.Left="8" Canvas.Top="32" Width="112" Height="23" Content="Remove"/>
+        <Button x:Name="btnClear" Canvas.Left="8" Canvas.Top="56" Width="112" Height="23" Content="Clear"/>
+        <Button x:Name="btnReverse" Canvas.Left="8" Canvas.Top="80" Width="112" Height="23" Content="Reverse"/>
+        <Button x:Name="cbtnCurrentColor" Canvas.Left="8" Canvas.Top="104" Width="112" Height="23" Content="Color"/>
+        
+        <!-- Location -->
+        <TextBlock Canvas.Left="5" Canvas.Top="128" Text="Location:" VerticalAlignment="Center"/>
+        <NumericUpDown x:Name="nudLocation" Canvas.Left="8" Canvas.Top="144" Width="112" Minimum="0" Maximum="100" Value="0" FormatString="0.00"/>
+        
+        <!-- Gradient type -->
+        <TextBlock Canvas.Left="5" Canvas.Top="180" Text="Gradient type:" VerticalAlignment="Center"/>
+        <ComboBox x:Name="cbGradientType" Canvas.Left="88" Canvas.Top="176" Width="120">
+            <ComboBoxItem Content="Linear"/>
+            <ComboBoxItem Content="Radial" IsSelected="True"/>
+        </ComboBox>
+        
+        <!-- Preview -->
+        <TextBlock Canvas.Left="5" Canvas.Top="206" Text="Preview:" VerticalAlignment="Center"/>
+        <Border Canvas.Left="8" Canvas.Top="224" Width="200" Height="50" BorderBrush="#666" BorderThickness="1">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                    <GradientStop Color="#FF0000" Offset="0"/>
+                    <GradientStop Color="#FFFF00" Offset="0.25"/>
+                    <GradientStop Color="#00FF00" Offset="0.5"/>
+                    <GradientStop Color="#00FFFF" Offset="0.75"/>
+                    <GradientStop Color="#0000FF" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+        
+        <!-- OK / Cancel -->
+        <Button x:Name="btnOK" Canvas.Left="8" Canvas.Top="280" Width="96" Height="23" Content="OK"/>
+        <Button x:Name="btnCancel" Canvas.Left="112" Canvas.Top="280" Width="96" Height="23" Content="Cancel"/>
+        
+        <!-- Middle column: gradient points list -->
+        <ListBox x:Name="lvGradientPoints" Canvas.Left="128" Canvas.Top="8" Width="80" Height="160">
+            <ListBoxItem Content="0.00"/>
+            <ListBoxItem Content="0.25"/>
+            <ListBoxItem Content="0.50"/>
+            <ListBoxItem Content="0.75"/>
+            <ListBoxItem Content="1.00"/>
+        </ListBox>
+        
+        <!-- Right column: presets -->
+        <TextBlock Canvas.Left="213" Canvas.Top="8" Text="Presets:" VerticalAlignment="Center"/>
+        <Border Canvas.Left="216" Canvas.Top="24" Width="376" Height="280" 
+                BorderBrush="{DynamicResource ThemeForegroundBrush}" BorderThickness="1">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl x:Name="lvPresets">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.Items>
+                    <!-- Rainbow -->
+                    <Border Width="64" Height="64" Margin="3" BorderBrush="#666" BorderThickness="1" Cursor="Hand">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                                <GradientStop Color="#FF0000" Offset="0"/>
+                                <GradientStop Color="#FFFF00" Offset="0.17"/>
+                                <GradientStop Color="#00FF00" Offset="0.33"/>
+                                <GradientStop Color="#00FFFF" Offset="0.5"/>
+                                <GradientStop Color="#0000FF" Offset="0.67"/>
+                                <GradientStop Color="#FF00FF" Offset="0.83"/>
+                                <GradientStop Color="#FF0000" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <!-- Sunset -->
+                    <Border Width="64" Height="64" Margin="3" BorderBrush="#666" BorderThickness="1" Cursor="Hand">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                                <GradientStop Color="#FF6B35" Offset="0"/>
+                                <GradientStop Color="#F7C59F" Offset="0.5"/>
+                                <GradientStop Color="#2E86AB" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <!-- Ocean -->
+                    <Border Width="64" Height="64" Margin="3" BorderBrush="#666" BorderThickness="1" Cursor="Hand">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                                <GradientStop Color="#0077B6" Offset="0"/>
+                                <GradientStop Color="#00B4D8" Offset="0.5"/>
+                                <GradientStop Color="#90E0EF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <!-- Forest -->
+                    <Border Width="64" Height="64" Margin="3" BorderBrush="#666" BorderThickness="1" Cursor="Hand">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                                <GradientStop Color="#2D6A4F" Offset="0"/>
+                                <GradientStop Color="#40916C" Offset="0.5"/>
+                                <GradientStop Color="#95D5B2" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <!-- Fire -->
+                    <Border Width="64" Height="64" Margin="3" BorderBrush="#666" BorderThickness="1" Cursor="Hand">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                                <GradientStop Color="#FF0000" Offset="0"/>
+                                <GradientStop Color="#FF8C00" Offset="0.5"/>
+                                <GradientStop Color="#FFFF00" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <!-- Purple Haze -->
+                    <Border Width="64" Height="64" Margin="3" BorderBrush="#666" BorderThickness="1" Cursor="Hand">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                                <GradientStop Color="#7B2CBF" Offset="0"/>
+                                <GradientStop Color="#C77DFF" Offset="0.5"/>
+                                <GradientStop Color="#E0AAFF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <!-- Grayscale -->
+                    <Border Width="64" Height="64" Margin="3" BorderBrush="#666" BorderThickness="1" Cursor="Hand">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                                <GradientStop Color="#000000" Offset="0"/>
+                                <GradientStop Color="#808080" Offset="0.5"/>
+                                <GradientStop Color="#FFFFFF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <!-- Pastel -->
+                    <Border Width="64" Height="64" Margin="3" BorderBrush="#666" BorderThickness="1" Cursor="Hand">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                                <GradientStop Color="#FFB3BA" Offset="0"/>
+                                <GradientStop Color="#BAFFC9" Offset="0.5"/>
+                                <GradientStop Color="#BAE1FF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </ItemsControl.Items>
+            </ItemsControl>
+        </ScrollViewer>
+        </Border>
+    </Canvas>
+</Window>

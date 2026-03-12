@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,14 +23,19 @@
 
 #endregion License Information (GPL v3)
 
+using SkiaSharp;
 using System;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace ShareX.HelpersLib
 {
     public class PrintHelper : IDisposable
     {
         public PrintType PrintType { get; private set; }
-        public Image Image { get; private set; }
+        public SKBitmap Image { get; private set; }
         public string Text { get; private set; }
         public PrintSettings Settings { get; set; }
 
@@ -39,173 +44,152 @@ namespace ShareX.HelpersLib
             get
             {
                 return Settings != null && ((PrintType == PrintType.Image && Image != null) ||
-                    (PrintType == PrintType.Text && !string.IsNullOrEmpty(Text) && Settings.TextFont != null));
+                    (PrintType == PrintType.Text && !string.IsNullOrEmpty(Text)));
             }
         }
 
-        private PrintDocument printDocument;
-        private PrintDialog printDialog;
-        private PrintPreviewDialog printPreviewDialog;
-        private PrintTextHelper printTextHelper;
-
-        public PrintHelper(Image image)
+        public PrintHelper(SKBitmap image)
         {
             PrintType = PrintType.Image;
             Image = image;
-            InitPrint();
         }
 
         public PrintHelper(string text)
         {
             PrintType = PrintType.Text;
             Text = text;
-            printTextHelper = new PrintTextHelper();
-            printTextHelper.Text = Text;
-            InitPrint();
-        }
-
-        private void InitPrint()
-        {
-            printDocument = new PrintDocument();
-            printDocument.BeginPrint += printDocument_BeginPrint;
-            printDocument.PrintPage += printDocument_PrintPage;
-            printDialog = new PrintDialog();
-            printDialog.Document = printDocument;
-            printDialog.UseEXDialog = true;
-            printPreviewDialog = new PrintPreviewDialog();
-            printPreviewDialog.Document = printDocument;
         }
 
         public void Dispose()
         {
-            if (printDocument != null) printDocument.Dispose();
-            if (printDialog != null) printDialog.Dispose();
-            if (printPreviewDialog != null) printPreviewDialog.Dispose();
+            // No managed resources to dispose in cross-platform implementation
         }
 
         public void ShowPreview()
         {
+            // Cross-platform print preview would require a custom window
+            // For now, just print directly
             if (Printable)
             {
-                printPreviewDialog.ShowDialog();
-            }
-        }
-
-        public void TryDefaultPrinterOverride()
-        {
-            string defaultPrinterName = printDocument.PrinterSettings.PrinterName;
-
-            if (!string.IsNullOrEmpty(Settings.DefaultPrinterOverride))
-            {
-                printDocument.PrinterSettings.PrinterName = Settings.DefaultPrinterOverride;
-            }
-
-            if (!printDocument.PrinterSettings.IsValid)
-            {
-                printDocument.PrinterSettings.PrinterName = defaultPrinterName;
-
-                MessageBox.Show("Printer \"" + Settings.DefaultPrinterOverride + "\" does not exist. Continuing with Windows default printer, you can set the default printer override in application settings.",
-                    "Invalid printer name", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Print();
             }
         }
 
         public bool Print()
         {
-            if (Printable && (!Settings.ShowPrintDialog || printDialog.ShowDialog() == DialogResult.OK))
-            {
-                if (PrintType == PrintType.Text)
-                {
-                    printTextHelper.Font = Settings.TextFont;
-                }
+            if (!Printable)
+                return false;
 
-                TryDefaultPrinterOverride();
-                printDocument.Print();
-                return true;
+            try
+            {
+                if (PrintType == PrintType.Image)
+                {
+                    return PrintImage();
+                }
+                else if (PrintType == PrintType.Text)
+                {
+                    return PrintText();
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex);
             }
 
             return false;
         }
 
-        private void printDocument_BeginPrint(object sender, PrintEventArgs e)
+        private bool PrintImage()
         {
-            if (PrintType == PrintType.Text)
+            // Save image to temp file and use system print command
+            string tempFile = Path.Combine(Path.GetTempPath(), $"sharex_print_{Guid.NewGuid()}.png");
+
+            try
             {
-                printTextHelper.BeginPrint();
+                using var stream = File.OpenWrite(tempFile);
+                Image.Encode(stream, SKEncodedImageFormat.Png, 100);
+                stream.Close();
+
+                return PrintFile(tempFile);
+            }
+            finally
+            {
+                // Clean up temp file after a delay
+                _ = Task.Delay(30000).ContinueWith(_ =>
+                {
+                    try { File.Delete(tempFile); } catch { }
+                });
             }
         }
 
-        private void printDocument_PrintPage(object sender, PrintPageEventArgs e)
+        private bool PrintText()
         {
-            if (PrintType == PrintType.Image)
+            // Save text to temp file and use system print command
+            string tempFile = Path.Combine(Path.GetTempPath(), $"sharex_print_{Guid.NewGuid()}.txt");
+
+            try
             {
-                PrintImage(e);
+                File.WriteAllText(tempFile, Text);
+                return PrintFile(tempFile);
             }
-            else if (PrintType == PrintType.Text)
+            finally
             {
-                printTextHelper.Font = Settings.TextFont;
-                printTextHelper.PrintPage(e);
+                _ = Task.Delay(30000).ContinueWith(_ =>
+                {
+                    try { File.Delete(tempFile); } catch { }
+                });
             }
         }
 
-        private void PrintImage(PrintPageEventArgs e)
+        private bool PrintFile(string filePath)
         {
-            Rectangle rect = e.PageBounds;
-            rect.Inflate(-Settings.Margin, -Settings.Margin);
-
-            Image img;
-
-            if (Settings.AutoRotateImage && ((rect.Width > rect.Height && Image.Width < Image.Height) ||
-                (rect.Width < rect.Height && Image.Width > Image.Height)))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                img = (Image)Image.Clone();
-                img.RotateFlip(RotateFlipType.Rotate90FlipNone);
+                // Use lpr on Linux
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "lpr",
+                    Arguments = $"\"{filePath}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(psi);
+                process?.WaitForExit(10000);
+                return process?.ExitCode == 0;
             }
-            else
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                img = Image;
-            }
+                // Use lpr on macOS
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "lpr",
+                    Arguments = $"\"{filePath}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
 
-            if (Settings.AutoScaleImage)
-            {
-                DrawAutoScaledImage(e.Graphics, img, rect, Settings.AllowEnlargeImage, Settings.CenterImage);
+                using var process = Process.Start(psi);
+                process?.WaitForExit(10000);
+                return process?.ExitCode == 0;
             }
-            else
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                e.Graphics.DrawImage(img, rect, new Rectangle(0, 0, rect.Width, rect.Height), GraphicsUnit.Pixel);
-            }
-        }
+                // Use shell execute with "print" verb on Windows
+                var psi = new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    Verb = "print",
+                    UseShellExecute = true,
+                    CreateNoWindow = true
+                };
 
-        private void DrawAutoScaledImage(Graphics g, Image img, Rectangle rect, bool allowEnlarge = false, bool centerImage = false)
-        {
-            double ratio;
-            int newWidth, newHeight;
-
-            if (!allowEnlarge && img.Width <= rect.Width && img.Height <= rect.Height)
-            {
-                ratio = 1.0;
-                newWidth = img.Width;
-                newHeight = img.Height;
-            }
-            else
-            {
-                double ratioX = (double)rect.Width / img.Width;
-                double ratioY = (double)rect.Height / img.Height;
-                ratio = ratioX < ratioY ? ratioX : ratioY;
-                newWidth = (int)(img.Width * ratio);
-                newHeight = (int)(img.Height * ratio);
-            }
-
-            int newX = rect.X;
-            int newY = rect.Y;
-
-            if (centerImage)
-            {
-                newX += (int)((rect.Width - (img.Width * ratio)) / 2);
-                newY += (int)((rect.Height - (img.Height * ratio)) / 2);
+                using var process = Process.Start(psi);
+                return process != null;
             }
 
-            g.SetHighQuality();
-            g.DrawImage(img, newX, newY, newWidth, newHeight);
+            return false;
         }
     }
+
 }

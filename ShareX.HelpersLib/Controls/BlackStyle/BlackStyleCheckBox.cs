@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,189 +23,193 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Media;
 using System;
 using System.ComponentModel;
 
 namespace ShareX.HelpersLib
 {
-    [DefaultEvent("CheckedChanged")]
-    public class BlackStyleCheckBox : Control
+    public class BlackStyleCheckBox : ToggleButton
     {
-        [DefaultValue(false)]
+        public static readonly StyledProperty<string> TextProperty =
+            AvaloniaProperty.Register<BlackStyleCheckBox, string>(nameof(Text), string.Empty);
+
+        public string Text
+        {
+            get => GetValue(TextProperty);
+            set => SetValue(TextProperty, value);
+        }
+
         public bool Checked
         {
-            get
-            {
-                return isChecked;
-            }
-            set
-            {
-                if (isChecked != value)
-                {
-                    isChecked = value;
-
-                    OnCheckedChanged(EventArgs.Empty);
-
-                    Invalidate();
-                }
-            }
+            get => IsChecked ?? false;
+            set => IsChecked = value;
         }
 
-        public override string Text
-        {
-            get
-            {
-                return text;
-            }
-            set
-            {
-                if (value == null)
-                {
-                    value = "";
-                }
-
-                if (text != value)
-                {
-                    text = value;
-
-                    Invalidate();
-                }
-            }
-        }
-
-        [DefaultValue(3)]
-        public int SpaceAfterCheckBox { get; set; }
-
-        [DefaultValue(false)]
+        public int SpaceAfterCheckBox { get; set; } = 3;
         public bool IgnoreClick { get; set; }
-
-        private bool isChecked, isHover;
-        private string text;
-
-        private LinearGradientBrush backgroundBrush, backgroundCheckedBrush, innerBorderBrush, innerBorderCheckedBrush;
-        private Pen innerBorderPen, innerBorderCheckedPen, borderPen;
-
-        private const int checkBoxSize = 13;
 
         public event EventHandler CheckedChanged;
 
+        private const int CheckBoxSize = 13;
+
+        private static readonly IBrush BackgroundBrush = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops =
+            {
+                new GradientStop(Color.FromRgb(105, 105, 105), 0),
+                new GradientStop(Color.FromRgb(55, 55, 55), 1)
+            }
+        };
+
+        private static readonly IBrush BackgroundCheckedBrush = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops =
+            {
+                new GradientStop(Color.FromRgb(102, 163, 226), 0),
+                new GradientStop(Color.FromRgb(83, 135, 186), 0.49),
+                new GradientStop(Color.FromRgb(75, 121, 175), 0.50),
+                new GradientStop(Color.FromRgb(56, 93, 135), 1)
+            }
+        };
+
+        private static readonly IPen InnerBorderPen = new Pen(new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops =
+            {
+                new GradientStop(Color.FromRgb(125, 125, 125), 0),
+                new GradientStop(Color.FromRgb(65, 75, 75), 1)
+            }
+        }, 1);
+
+        private static readonly IPen InnerBorderCheckedPen = new Pen(new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops =
+            {
+                new GradientStop(Color.FromRgb(133, 192, 241), 0),
+                new GradientStop(Color.FromRgb(76, 119, 163), 1)
+            }
+        }, 1);
+
+        private static readonly IPen BorderPen = new Pen(new SolidColorBrush(Color.FromRgb(30, 30, 30)), 1);
+
+        private bool isHover;
+
         public BlackStyleCheckBox()
         {
-            SpaceAfterCheckBox = 3;
-
-            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
-
-            BackColor = Color.Transparent;
-            ForeColor = Color.White;
-
-            // http://connect.microsoft.com/VisualStudio/feedback/details/348321/bug-in-fillrectangle-using-lineargradientbrush
-            backgroundBrush = new LinearGradientBrush(new Rectangle(2, 2, checkBoxSize - 4, checkBoxSize - 3), Color.FromArgb(105, 105, 105), Color.FromArgb(55, 55, 55), LinearGradientMode.Vertical);
-
-            innerBorderBrush = new LinearGradientBrush(new Rectangle(1, 1, checkBoxSize - 2, checkBoxSize - 2), Color.FromArgb(125, 125, 125), Color.FromArgb(65, 75, 75), LinearGradientMode.Vertical);
-            innerBorderPen = new Pen(innerBorderBrush);
-
-            backgroundCheckedBrush = new LinearGradientBrush(new Rectangle(2, 2, checkBoxSize - 4, checkBoxSize - 3), Color.Black, Color.Black, LinearGradientMode.Vertical);
-            ColorBlend cb = new ColorBlend();
-            cb.Positions = new float[] { 0, 0.49f, 0.50f, 1 };
-            cb.Colors = new Color[] { Color.FromArgb(102, 163, 226), Color.FromArgb(83, 135, 186), Color.FromArgb(75, 121, 175), Color.FromArgb(56, 93, 135) };
-            backgroundCheckedBrush.InterpolationColors = cb;
-
-            innerBorderCheckedBrush = new LinearGradientBrush(new Rectangle(1, 1, checkBoxSize - 2, checkBoxSize - 2), Color.FromArgb(133, 192, 241), Color.FromArgb(76, 119, 163), LinearGradientMode.Vertical);
-            innerBorderCheckedPen = new Pen(innerBorderCheckedBrush);
-
-            borderPen = new Pen(Color.FromArgb(30, 30, 30));
-
-            Font = new Font("Arial", 8);
+            Foreground = Brushes.White;
+            FontFamily = new FontFamily("Arial");
+            FontSize = 8;
+            Background = Brushes.Transparent;
         }
 
-        protected override void OnPaint(PaintEventArgs pe)
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
-            base.OnPaint(pe);
+            base.OnPropertyChanged(change);
 
-            Graphics g = pe.Graphics;
-
-            DrawBackground(g);
-
-            if (!string.IsNullOrEmpty(Text))
+            if (change.Property == IsCheckedProperty)
             {
-                DrawText(g);
+                CheckedChanged?.Invoke(this, EventArgs.Empty);
+                InvalidateVisual();
             }
         }
 
-        protected override void OnMouseEnter(EventArgs e)
+        protected override void OnPointerEntered(PointerEventArgs e)
         {
-            base.OnMouseEnter(e);
-
+            base.OnPointerEntered(e);
             isHover = true;
-            Invalidate();
+            InvalidateVisual();
         }
 
-        protected override void OnMouseLeave(EventArgs e)
+        protected override void OnPointerExited(PointerEventArgs e)
         {
-            base.OnMouseLeave(e);
-
+            base.OnPointerExited(e);
             isHover = false;
-            Invalidate();
+            InvalidateVisual();
         }
 
-        protected override void OnClick(EventArgs e)
+        protected override void OnClick()
         {
-            base.OnClick(e);
-
             if (!IgnoreClick)
             {
-                Checked = !Checked;
+                base.OnClick();
             }
         }
 
-        protected virtual void OnCheckedChanged(EventArgs e)
+        public override void Render(DrawingContext context)
         {
-            CheckedChanged?.Invoke(this, e);
-        }
+            base.Render(context);
 
-        private void DrawBackground(Graphics g)
-        {
+            var checkBoxRect = new Rect(0, 0, CheckBoxSize, CheckBoxSize);
+            var innerRect = new Rect(1, 1, CheckBoxSize - 2, CheckBoxSize - 2);
+            var fillRect = new Rect(2, 2, CheckBoxSize - 4, CheckBoxSize - 4);
+
+            // Draw checkbox background
             if (Checked)
             {
-                g.FillRectangle(backgroundCheckedBrush, new Rectangle(2, 2, checkBoxSize - 4, checkBoxSize - 4));
-                g.DrawRectangle(innerBorderCheckedPen, new Rectangle(1, 1, checkBoxSize - 3, checkBoxSize - 3));
+                context.FillRectangle(BackgroundCheckedBrush, fillRect);
+                context.DrawRectangle(InnerBorderCheckedPen, innerRect);
             }
             else
             {
-                g.FillRectangle(backgroundBrush, new Rectangle(2, 2, checkBoxSize - 4, checkBoxSize - 4));
-
-                if (isHover)
-                {
-                    g.DrawRectangle(innerBorderCheckedPen, new Rectangle(1, 1, checkBoxSize - 3, checkBoxSize - 3));
-                }
-                else
-                {
-                    g.DrawRectangle(innerBorderPen, new Rectangle(1, 1, checkBoxSize - 3, checkBoxSize - 3));
-                }
+                context.FillRectangle(BackgroundBrush, fillRect);
+                context.DrawRectangle(isHover ? InnerBorderCheckedPen : InnerBorderPen, innerRect);
             }
 
-            g.DrawRectangle(borderPen, new Rectangle(0, 0, checkBoxSize - 1, checkBoxSize - 1));
+            // Draw border
+            context.DrawRectangle(BorderPen, checkBoxRect);
+
+            // Draw text
+            if (!string.IsNullOrEmpty(Text))
+            {
+                var textX = CheckBoxSize + SpaceAfterCheckBox;
+                var formattedText = new FormattedText(
+                    Text,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface(FontFamily),
+                    FontSize,
+                    Foreground);
+
+                // Draw shadow
+                context.DrawText(
+                    new FormattedText(Text, System.Globalization.CultureInfo.CurrentCulture,
+                        FlowDirection.LeftToRight, new Typeface(FontFamily), FontSize, Brushes.Black),
+                    new Avalonia.Point(textX, 1));
+
+                // Draw text
+                context.DrawText(formattedText, new Avalonia.Point(textX, 0));
+            }
         }
 
-        private void DrawText(Graphics g)
+        protected override Avalonia.Size MeasureOverride(Avalonia.Size availableSize)
         {
-            Rectangle rect = new Rectangle(checkBoxSize + SpaceAfterCheckBox, 0, ClientRectangle.Width - checkBoxSize + SpaceAfterCheckBox, ClientRectangle.Height);
-            TextFormatFlags tff = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak;
-            TextRenderer.DrawText(g, Text, Font, new Rectangle(rect.X, rect.Y + 1, rect.Width, rect.Height + 1), Color.Black, tff);
-            TextRenderer.DrawText(g, Text, Font, rect, ForeColor, tff);
-        }
+            var textWidth = 0.0;
+            if (!string.IsNullOrEmpty(Text))
+            {
+                var formattedText = new FormattedText(
+                    Text,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface(FontFamily),
+                    FontSize,
+                    Foreground);
+                textWidth = formattedText.Width + SpaceAfterCheckBox;
+            }
 
-        protected override void Dispose(bool disposing)
-        {
-            if (backgroundBrush != null) backgroundBrush.Dispose();
-            if (backgroundCheckedBrush != null) backgroundCheckedBrush.Dispose();
-            if (innerBorderBrush != null) innerBorderBrush.Dispose();
-            if (innerBorderPen != null) innerBorderPen.Dispose();
-            if (innerBorderCheckedBrush != null) innerBorderCheckedBrush.Dispose();
-            if (innerBorderCheckedPen != null) innerBorderCheckedPen.Dispose();
-            if (borderPen != null) borderPen.Dispose();
-
-            base.Dispose(disposing);
+            return new Avalonia.Size(CheckBoxSize + textWidth, CheckBoxSize);
         }
     }
 }

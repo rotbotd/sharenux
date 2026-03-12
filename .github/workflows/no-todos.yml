@@ -1,0 +1,41 @@
+name: No TODOs
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-todos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for forbidden phrases
+        run: |
+          # Get the diff for this PR, excluding this workflow file
+          git diff origin/main...HEAD -- . ':!.github/workflows/no-todos.yml' > pr.diff
+          
+          # Check for forbidden phrases (case insensitive)
+          forbidden=("T""ODO" "FIX""ME" "for n""ow" "for the time b""eing" "tempor""arily" "st""ub")
+          found=0
+          
+          for phrase in "${forbidden[@]}"; do
+            # Only check added lines (starting with +, but not +++ file headers)
+            matches=$(grep -i "^+[^+]" pr.diff | grep -in "$phrase" || true)
+            if [ -n "$matches" ]; then
+              echo "❌ Found forbidden phrase '$phrase' in added lines:"
+              echo "$matches"
+              echo ""
+              found=1
+            fi
+          done
+          
+          if [ $found -eq 1 ]; then
+            echo ""
+            echo "Fix these before merging."
+            exit 1
+          else
+            echo "✅ No forbidden phrases found"
+          fi

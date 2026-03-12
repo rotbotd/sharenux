@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,41 +23,64 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Threading;
+using SkiaSharp;
 using System;
-using System.ComponentModel;
 
 namespace ShareX.HelpersLib
 {
-    public class ToolStripButtonColorAnimation : ToolStripButton
+    /// <summary>
+    /// A button that animates its foreground color between two colors.
+    /// </summary>
+    public class ToolStripButtonColorAnimation : Button, IDisposable
     {
-        [DefaultValue(typeof(Color), "ControlText")]
-        public Color FromColor { get; set; }
+        public static readonly StyledProperty<SKColor> FromColorProperty =
+            AvaloniaProperty.Register<ToolStripButtonColorAnimation, SKColor>(nameof(FromColor), SKColors.Black);
 
-        [DefaultValue(typeof(Color), "Red")]
-        public Color ToColor { get; set; }
+        public static readonly StyledProperty<SKColor> ToColorProperty =
+            AvaloniaProperty.Register<ToolStripButtonColorAnimation, SKColor>(nameof(ToColor), SKColors.Red);
 
-        [DefaultValue(1f)]
-        public float AnimationSpeed { get; set; }
+        public static readonly StyledProperty<float> AnimationSpeedProperty =
+            AvaloniaProperty.Register<ToolStripButtonColorAnimation, float>(nameof(AnimationSpeed), 1f);
 
-        private Timer timer;
+        public SKColor FromColor
+        {
+            get => GetValue(FromColorProperty);
+            set => SetValue(FromColorProperty, value);
+        }
+
+        public SKColor ToColor
+        {
+            get => GetValue(ToColorProperty);
+            set => SetValue(ToColorProperty, value);
+        }
+
+        public float AnimationSpeed
+        {
+            get => GetValue(AnimationSpeedProperty);
+            set => SetValue(AnimationSpeedProperty, value);
+        }
+
+        private DispatcherTimer timer;
         private float progress;
         private float direction = 1;
         private float speed;
 
         public ToolStripButtonColorAnimation()
         {
-            timer = new Timer();
-            timer.Interval = 100;
-            timer.Tick += timer_Tick;
-
-            FromColor = SystemColors.ControlText;
-            ToColor = Color.Red;
-            AnimationSpeed = 1f;
+            timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            timer.Tick += Timer_Tick;
         }
 
         public void StartAnimation()
         {
-            speed = AnimationSpeed / (1000f / timer.Interval);
+            speed = AnimationSpeed / (1000f / 100f);
             timer.Start();
         }
 
@@ -69,10 +92,10 @@ namespace ShareX.HelpersLib
         public void ResetAnimation()
         {
             StopAnimation();
-            ForeColor = FromColor;
+            Foreground = new SolidColorBrush(FromColor.ToAvaloniaColor());
         }
 
-        private void timer_Tick(object sender, EventArgs e)
+        private void Timer_Tick(object sender, EventArgs e)
         {
             progress += direction * speed;
 
@@ -87,17 +110,13 @@ namespace ShareX.HelpersLib
                 direction = -direction;
             }
 
-            ForeColor = ColorHelpers.Lerp(FromColor, ToColor, progress);
+            var lerpedColor = ColorHelpers.Lerp(FromColor, ToColor, progress);
+            Foreground = new SolidColorBrush(lerpedColor.ToAvaloniaColor());
         }
 
-        protected override void Dispose(bool disposing)
+        public void Dispose()
         {
-            if (timer != null)
-            {
-                timer.Dispose();
-            }
-
-            base.Dispose(disposing);
+            timer?.Stop();
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,17 +23,67 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using System.Collections;
 
 namespace ShareX.HelpersLib
 {
-    [ToolStripItemDesignerAvailability(ToolStripItemDesignerAvailability.MenuStrip | ToolStripItemDesignerAvailability.ContextMenuStrip)]
-    public class ToolStripLabeledComboBox : ToolStripControlHost
+    // Avalonia replacement for WinForms ToolStripControlHost<LabeledComboBox>
+    // A StackPanel containing a TextBlock label and ComboBox
+    public class ToolStripLabeledComboBox : StackPanel
     {
-        public LabeledComboBox Content => Control as LabeledComboBox;
+        private readonly TextBlock label;
+        private readonly ComboBox comboBox;
 
-        public ToolStripLabeledComboBox(string text) : base(new LabeledComboBox())
+        public LabeledComboBox Content => new LabeledComboBox { Text = Text };
+
+        public string Text
         {
-            Content.Text = text;
+            get => label.Text;
+            set => label.Text = value;
+        }
+
+        public IEnumerable ItemsSource
+        {
+            get => comboBox.ItemsSource;
+            set => comboBox.ItemsSource = value;
+        }
+
+        public object SelectedItem
+        {
+            get => comboBox.SelectedItem;
+            set => comboBox.SelectedItem = value;
+        }
+
+        public int SelectedIndex
+        {
+            get => comboBox.SelectedIndex;
+            set => comboBox.SelectedIndex = value;
+        }
+
+        public ToolStripLabeledComboBox() : this(string.Empty) { }
+
+        public ToolStripLabeledComboBox(string text)
+        {
+            Orientation = Orientation.Horizontal;
+            Spacing = 4;
+            VerticalAlignment = VerticalAlignment.Center;
+
+            label = new TextBlock
+            {
+                Text = text,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            comboBox = new ComboBox
+            {
+                MinWidth = 80
+            };
+
+            Children.Add(label);
+            Children.Add(comboBox);
         }
     }
 }

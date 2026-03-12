@@ -27,7 +27,7 @@ using System.ComponentModel;
 
 namespace ShareX.HelpersLib
 {
-    public class MyColorConverter : ColorConverter
+    public class MyColorConverter : TypeConverter
     {
         public override bool GetStandardValuesSupported(ITypeDescriptorContext context)
         {

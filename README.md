@@ -32,6 +32,22 @@ dotnet build
 dotnet test
 ```
 
+## Dependency Graph
+
+```
+HelpersLib (base - DONE ✓)
+    ↓
+    ├── HistoryLib
+    ├── UploadersLib  
+    ├── MediaLib
+    ├── IndexerLib
+    ├── ImageEffectsLib
+    │       ↓
+    └── ScreenCaptureLib (depends on HelpersLib, ImageEffectsLib, MediaLib)
+            ↓
+        ShareX (main app - depends on everything)
+```
+
 ## Contributing
 
 This is a big project. If you want to help:

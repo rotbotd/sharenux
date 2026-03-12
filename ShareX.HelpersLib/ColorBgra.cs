@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.Runtime.InteropServices;
+using SkiaSharp;
 
 namespace ShareX.HelpersLib
 {
@@ -57,7 +58,7 @@ namespace ShareX.HelpersLib
             Alpha = a;
         }
 
-        public ColorBgra(Color color) : this(color.B, color.G, color.R, color.A)
+        public ColorBgra(SKColor color) : this(color.Blue, color.Green, color.Red, color.Alpha)
         {
         }
 
@@ -94,10 +95,13 @@ namespace ShareX.HelpersLib
             return color.Bgra;
         }
 
-        public Color ToColor()
+        public SKColor ToSKColor()
         {
-            return Color.FromArgb(Alpha, Red, Green, Blue);
+            return new SKColor(Red, Green, Blue, Alpha);
         }
+
+        // Compat alias for code expecting System.Drawing.Color
+        public SKColor ToColor() => ToSKColor();
 
         public override string ToString()
         {

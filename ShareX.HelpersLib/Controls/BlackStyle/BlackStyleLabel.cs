@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,202 +23,171 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
+using SkiaSharp;
 using System;
-using System.ComponentModel;
+using System.Globalization;
 
 namespace ShareX.HelpersLib
 {
-    public class BlackStyleLabel : Control
+    public class BlackStyleLabel : Avalonia.Controls.Control
     {
-        private string text;
+        public static readonly StyledProperty<string> TextProperty =
+            AvaloniaProperty.Register<BlackStyleLabel, string>(nameof(Text), string.Empty);
 
-        [Editor("System.ComponentModel.Design.MultilineStringEditor, System.Design, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", typeof(UITypeEditor))]
-        [SettingsBindable(true)]
-        public override string Text
+        public static readonly StyledProperty<HorizontalAlignment> HorizontalTextAlignmentProperty =
+            AvaloniaProperty.Register<BlackStyleLabel, HorizontalAlignment>(nameof(HorizontalTextAlignment), HorizontalAlignment.Left);
+
+        public static readonly StyledProperty<VerticalAlignment> VerticalTextAlignmentProperty =
+            AvaloniaProperty.Register<BlackStyleLabel, VerticalAlignment>(nameof(VerticalTextAlignment), VerticalAlignment.Top);
+
+        public static readonly StyledProperty<SKColor> TextShadowColorProperty =
+            AvaloniaProperty.Register<BlackStyleLabel, SKColor>(nameof(TextShadowColor), SKColors.Black);
+
+        public static readonly StyledProperty<bool> DrawBorderProperty =
+            AvaloniaProperty.Register<BlackStyleLabel, bool>(nameof(DrawBorder), false);
+
+        public static readonly StyledProperty<SKColor> BorderColorProperty =
+            AvaloniaProperty.Register<BlackStyleLabel, SKColor>(nameof(BorderColor), SKColors.Black);
+
+        public static readonly StyledProperty<bool> AutoEllipsisProperty =
+            AvaloniaProperty.Register<BlackStyleLabel, bool>(nameof(AutoEllipsis), false);
+
+        public string Text
         {
-            get
-            {
-                return text;
-            }
-            set
-            {
-                if (value == null)
-                {
-                    value = "";
-                }
-
-                if (text != value)
-                {
-                    text = value;
-
-                    OnTextChanged(EventArgs.Empty);
-
-                    Invalidate();
-                }
-            }
+            get => GetValue(TextProperty);
+            set => SetValue(TextProperty, value);
         }
 
-        private ContentAlignment textAlign;
-
-        [DefaultValue(ContentAlignment.TopLeft)]
-        public ContentAlignment TextAlign
+        public HorizontalAlignment HorizontalTextAlignment
         {
-            get
-            {
-                return textAlign;
-            }
-            set
-            {
-                textAlign = value;
-
-                Invalidate();
-            }
+            get => GetValue(HorizontalTextAlignmentProperty);
+            set => SetValue(HorizontalTextAlignmentProperty, value);
         }
 
-        private Color textShadowColor;
-
-        [DefaultValue(typeof(Color), "Black")]
-        public Color TextShadowColor
+        public VerticalAlignment VerticalTextAlignment
         {
-            get
-            {
-                return textShadowColor;
-            }
-            set
-            {
-                textShadowColor = value;
-
-                Invalidate();
-            }
+            get => GetValue(VerticalTextAlignmentProperty);
+            set => SetValue(VerticalTextAlignmentProperty, value);
         }
 
-        private bool drawBorder;
+        public SKColor TextShadowColor
+        {
+            get => GetValue(TextShadowColorProperty);
+            set => SetValue(TextShadowColorProperty, value);
+        }
 
-        [DefaultValue(false)]
         public bool DrawBorder
         {
-            get
-            {
-                return drawBorder;
-            }
-            set
-            {
-                drawBorder = value;
-
-                Invalidate();
-            }
+            get => GetValue(DrawBorderProperty);
+            set => SetValue(DrawBorderProperty, value);
         }
 
-        private Color borderColor = Color.Black;
-
-        [DefaultValue(typeof(Color), "Black")]
-        public Color BorderColor
+        public SKColor BorderColor
         {
-            get
-            {
-                return borderColor;
-            }
-            set
-            {
-                borderColor = value;
-
-                Invalidate();
-            }
+            get => GetValue(BorderColorProperty);
+            set => SetValue(BorderColorProperty, value);
         }
 
-        private bool autoEllipsis;
-
-        [DefaultValue(false)]
         public bool AutoEllipsis
         {
-            get
-            {
-                return autoEllipsis;
-            }
-            set
-            {
-                autoEllipsis = value;
-
-                Invalidate();
-            }
+            get => GetValue(AutoEllipsisProperty);
+            set => SetValue(AutoEllipsisProperty, value);
         }
 
         public BlackStyleLabel()
         {
-            DoubleBuffered = true;
-            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
-            TextAlign = ContentAlignment.TopLeft;
-            BackColor = Color.Transparent;
-            ForeColor = Color.White;
-            TextShadowColor = Color.Black;
-            Font = new Font("Arial", 12);
+            ClipToBounds = true;
         }
 
-        protected override void OnPaint(PaintEventArgs pe)
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
-            Graphics g = pe.Graphics;
+            base.OnPropertyChanged(change);
+            InvalidateVisual();
+        }
 
-            if (!string.IsNullOrEmpty(Text))
+        public override void Render(DrawingContext context)
+        {
+            base.Render(context);
+
+            if (string.IsNullOrEmpty(Text))
+                return;
+
+            var typeface = new Typeface(FontFamily.Default);
+            var foreground = Foreground ?? Brushes.White;
+
+            string displayText = Text;
+            if (AutoEllipsis && Bounds.Width > 0)
             {
-                DrawText(g);
-
-                if (drawBorder)
+                var testText = new FormattedText(Text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, typeface, FontSize, foreground);
+                if (testText.Width > Bounds.Width)
                 {
-                    using (Pen pen = new Pen(BorderColor, 1))
+                    for (int i = Text.Length - 1; i > 0; i--)
                     {
-                        g.DrawRectangleProper(pen, ClientRectangle);
+                        displayText = Text.Substring(0, i) + "...";
+                        testText = new FormattedText(displayText, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, typeface, FontSize, foreground);
+                        if (testText.Width <= Bounds.Width)
+                            break;
                     }
                 }
             }
+
+            var formattedText = new FormattedText(displayText, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, typeface, FontSize, foreground);
+
+            double x = 0;
+            double y = 0;
+
+            switch (HorizontalTextAlignment)
+            {
+                case HorizontalAlignment.Center:
+                    x = (Bounds.Width - formattedText.Width) / 2;
+                    break;
+                case HorizontalAlignment.Right:
+                    x = Bounds.Width - formattedText.Width;
+                    break;
+            }
+
+            switch (VerticalTextAlignment)
+            {
+                case VerticalAlignment.Center:
+                    y = (Bounds.Height - formattedText.Height) / 2;
+                    break;
+                case VerticalAlignment.Bottom:
+                    y = Bounds.Height - formattedText.Height;
+                    break;
+            }
+
+            // Draw shadow
+            if (TextShadowColor.Alpha > 0)
+            {
+                var shadowBrush = new SolidColorBrush(Color.FromArgb(TextShadowColor.Alpha, TextShadowColor.Red, TextShadowColor.Green, TextShadowColor.Blue));
+                var shadowText = new FormattedText(displayText, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, typeface, FontSize, shadowBrush);
+                context.DrawText(shadowText, new Point(x, y + 1));
+            }
+
+            // Draw text
+            context.DrawText(formattedText, new Point(x, y));
+
+            // Draw border
+            if (DrawBorder)
+            {
+                var borderBrush = new SolidColorBrush(Color.FromArgb(BorderColor.Alpha, BorderColor.Red, BorderColor.Green, BorderColor.Blue));
+                var pen = new Pen(borderBrush, 1);
+                context.DrawRectangle(pen, new Rect(0, 0, Bounds.Width - 1, Bounds.Height - 1));
+            }
         }
 
-        private void DrawText(Graphics g)
+        protected override Size MeasureOverride(Size availableSize)
         {
-            TextFormatFlags tff;
+            if (string.IsNullOrEmpty(Text))
+                return new Size(0, FontSize);
 
-            switch (TextAlign)
-            {
-                case ContentAlignment.TopLeft:
-                    tff = TextFormatFlags.Top | TextFormatFlags.Left;
-                    break;
-                case ContentAlignment.MiddleLeft:
-                    tff = TextFormatFlags.VerticalCenter | TextFormatFlags.Left;
-                    break;
-                case ContentAlignment.BottomLeft:
-                    tff = TextFormatFlags.Bottom | TextFormatFlags.Left;
-                    break;
-                case ContentAlignment.TopCenter:
-                    tff = TextFormatFlags.Top | TextFormatFlags.HorizontalCenter;
-                    break;
-                default:
-                case ContentAlignment.MiddleCenter:
-                    tff = TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter;
-                    break;
-                case ContentAlignment.BottomCenter:
-                    tff = TextFormatFlags.Bottom | TextFormatFlags.HorizontalCenter;
-                    break;
-                case ContentAlignment.TopRight:
-                    tff = TextFormatFlags.Top | TextFormatFlags.Right;
-                    break;
-                case ContentAlignment.MiddleRight:
-                    tff = TextFormatFlags.VerticalCenter | TextFormatFlags.Right;
-                    break;
-                case ContentAlignment.BottomRight:
-                    tff = TextFormatFlags.Bottom | TextFormatFlags.Right;
-                    break;
-            }
-
-            if (AutoEllipsis)
-            {
-                tff |= TextFormatFlags.EndEllipsis;
-            }
-
-            if (TextShadowColor.A > 0)
-            {
-                TextRenderer.DrawText(g, Text, Font, ClientRectangle.LocationOffset(0, 1), TextShadowColor, tff);
-            }
-
-            TextRenderer.DrawText(g, Text, Font, ClientRectangle, ForeColor, tff);
+            var typeface = new Typeface(FontFamily.Default);
+            var formattedText = new FormattedText(Text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, typeface, FontSize, Brushes.White);
+            return new Size(formattedText.Width, formattedText.Height);
         }
     }
 }

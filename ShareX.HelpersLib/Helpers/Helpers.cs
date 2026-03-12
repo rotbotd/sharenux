@@ -61,20 +61,29 @@ namespace ShareX.HelpersLib
 
         public static readonly Version OSVersion = Environment.OSVersion.Version;
 
-        private static Cursor[] cursorList;
+        private static Avalonia.Input.StandardCursorType[] cursorList;
 
-        public static Cursor[] CursorList
+        public static Avalonia.Input.StandardCursorType[] CursorList
         {
             get
             {
                 if (cursorList == null)
                 {
-                    cursorList = new Cursor[] {
-                        Cursors.AppStarting, Cursors.Arrow, Cursors.Cross, Cursors.Default, Cursors.Hand, Cursors.Help,
-                        Cursors.HSplit, Cursors.IBeam, Cursors.No, Cursors.NoMove2D, Cursors.NoMoveHoriz, Cursors.NoMoveVert,
-                        Cursors.PanEast, Cursors.PanNE, Cursors.PanNorth, Cursors.PanNW, Cursors.PanSE, Cursors.PanSouth,
-                        Cursors.PanSW, Cursors.PanWest, Cursors.SizeAll, Cursors.SizeNESW, Cursors.SizeNS, Cursors.SizeNWSE,
-                        Cursors.SizeWE, Cursors.UpArrow, Cursors.VSplit, Cursors.WaitCursor
+                    cursorList = new Avalonia.Input.StandardCursorType[] {
+                        Avalonia.Input.StandardCursorType.Wait, Avalonia.Input.StandardCursorType.Arrow,
+                        Avalonia.Input.StandardCursorType.Cross, Avalonia.Input.StandardCursorType.Arrow,
+                        Avalonia.Input.StandardCursorType.Hand, Avalonia.Input.StandardCursorType.Help,
+                        Avalonia.Input.StandardCursorType.SizeNorthSouth, Avalonia.Input.StandardCursorType.Ibeam,
+                        Avalonia.Input.StandardCursorType.No, Avalonia.Input.StandardCursorType.SizeAll,
+                        Avalonia.Input.StandardCursorType.SizeWestEast, Avalonia.Input.StandardCursorType.SizeNorthSouth,
+                        Avalonia.Input.StandardCursorType.SizeWestEast, Avalonia.Input.StandardCursorType.SizeNorthEastSouthWest,
+                        Avalonia.Input.StandardCursorType.SizeNorthSouth, Avalonia.Input.StandardCursorType.SizeNorthWestSouthEast,
+                        Avalonia.Input.StandardCursorType.SizeNorthEastSouthWest, Avalonia.Input.StandardCursorType.SizeNorthSouth,
+                        Avalonia.Input.StandardCursorType.SizeNorthWestSouthEast, Avalonia.Input.StandardCursorType.SizeWestEast,
+                        Avalonia.Input.StandardCursorType.SizeAll, Avalonia.Input.StandardCursorType.SizeNorthEastSouthWest,
+                        Avalonia.Input.StandardCursorType.SizeNorthSouth, Avalonia.Input.StandardCursorType.SizeNorthWestSouthEast,
+                        Avalonia.Input.StandardCursorType.SizeWestEast, Avalonia.Input.StandardCursorType.UpArrow,
+                        Avalonia.Input.StandardCursorType.SizeWestEast, Avalonia.Input.StandardCursorType.Wait
                     };
                 }
 
@@ -510,18 +519,25 @@ namespace ShareX.HelpersLib
 
         public static Size MeasureText(string text, Font font)
         {
-            using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
+            using (var paint = new SkiaSharp.SKPaint())
             {
-                return g.MeasureString(text, font).ToSize();
+                paint.TextSize = font.Size;
+                paint.Typeface = SkiaSharp.SKTypeface.FromFamilyName(font.Name);
+                var bounds = new SkiaSharp.SKRect();
+                paint.MeasureText(text, ref bounds);
+                return new Size((int)Math.Ceiling(bounds.Width), (int)Math.Ceiling(bounds.Height));
             }
         }
 
         public static Size MeasureText(string text, Font font, int width)
         {
-            using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
-            {
-                return g.MeasureString(text, font, width).ToSize();
-            }
+            // For wrapped text measurement, estimate based on single line and width
+            var singleLineSize = MeasureText(text, font);
+            if (singleLineSize.Width <= width)
+                return singleLineSize;
+            
+            int lines = (int)Math.Ceiling((double)singleLineSize.Width / width);
+            return new Size(width, singleLineSize.Height * lines);
         }
 
         public static string SendPing(string host)
@@ -679,12 +695,11 @@ namespace ShareX.HelpersLib
             return productName;
         }
 
-        public static Cursor CreateCursor(byte[] data)
+        public static Avalonia.Input.Cursor CreateCursor(byte[] data)
         {
-            using (MemoryStream ms = new MemoryStream(data))
-            {
-                return new Cursor(ms);
-            }
+            // Avalonia doesn't support loading cursors from byte arrays directly
+            // Return default cursor - custom cursor loading would need platform-specific implementation
+            return new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Arrow);
         }
 
         public static string EscapeCLIText(string text)
@@ -854,58 +869,71 @@ namespace ShareX.HelpersLib
             }
         }
 
-        public static Icon GetProgressIcon(int percentage)
+        public static SkiaSharp.SKBitmap GetProgressIcon(int percentage)
         {
-            return GetProgressIcon(percentage, Color.FromArgb(16, 116, 193));
+            return GetProgressIcon(percentage, new SkiaSharp.SKColor(16, 116, 193));
         }
 
-        public static Icon GetProgressIcon(int percentage, Color color)
+        public static SkiaSharp.SKBitmap GetProgressIcon(int percentage, SkiaSharp.SKColor color)
         {
             percentage = percentage.Clamp(0, 100);
 
-            Size size = SystemInformation.SmallIconSize;
+            int width = 16;
+            int height = 16;
 
-            using (Bitmap bmp = new Bitmap(size.Width, size.Height))
-            using (Graphics g = Graphics.FromImage(bmp))
+            var bmp = new SkiaSharp.SKBitmap(width, height);
+            using (var canvas = new SkiaSharp.SKCanvas(bmp))
             {
-                using (Brush brush = new SolidBrush(Color.FromArgb(39, 39, 39)))
+                // Background
+                using (var paint = new SkiaSharp.SKPaint())
                 {
-                    g.FillRectangle(brush, 0, 0, size.Width, size.Height);
+                    paint.Color = new SkiaSharp.SKColor(39, 39, 39);
+                    canvas.DrawRect(0, 0, width, height, paint);
                 }
 
-                int y = (int)(size.Height * (percentage / 100f));
+                int y = (int)(height * (percentage / 100f));
 
                 if (y > 0)
                 {
-                    using (Brush brush = new SolidBrush(color))
+                    // Progress fill
+                    using (var paint = new SkiaSharp.SKPaint())
                     {
-                        g.FillRectangle(brush, 0, size.Height - y, size.Width, y);
+                        paint.Color = color;
+                        canvas.DrawRect(0, height - y, width, y, paint);
                     }
 
-                    if (y < size.Height)
+                    if (y < height)
                     {
-                        using (Pen pen = new Pen(ColorHelpers.LighterColor(color, 0.3f)))
+                        // Top line
+                        using (var paint = new SkiaSharp.SKPaint())
                         {
-                            g.DrawLine(pen, 0, size.Height - y, size.Width - 1, size.Height - y);
+                            paint.Color = ColorHelpers.LighterColor(color, 0.3f);
+                            paint.StrokeWidth = 1;
+                            canvas.DrawLine(0, height - y, width - 1, height - y, paint);
                         }
                     }
                 }
 
-                using (Font font = new Font("Arial", 10))
-                using (StringFormat sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                // Percentage text
+                using (var paint = new SkiaSharp.SKPaint())
                 {
+                    paint.Color = SkiaSharp.SKColors.White;
+                    paint.TextSize = 10;
+                    paint.TextAlign = SkiaSharp.SKTextAlign.Center;
+                    paint.IsAntialias = true;
+                    
                     percentage = percentage.Clamp(0, 99);
-
-                    g.DrawString(percentage.ToString(), font, Brushes.White, size.Width / 2f, size.Height / 2f, sf);
+                    canvas.DrawText(percentage.ToString(), width / 2f, height / 2f + 3, paint);
                 }
 
-                bmp.SetPixel(0, 0, Color.Transparent);
-                bmp.SetPixel(bmp.Width - 1, 0, Color.Transparent);
-                bmp.SetPixel(0, bmp.Height - 1, Color.Transparent);
-                bmp.SetPixel(bmp.Width - 1, bmp.Height - 1, Color.Transparent);
-
-                return Icon.FromHandle(bmp.GetHicon());
+                // Transparent corners
+                bmp.SetPixel(0, 0, SkiaSharp.SKColors.Transparent);
+                bmp.SetPixel(width - 1, 0, SkiaSharp.SKColors.Transparent);
+                bmp.SetPixel(0, height - 1, SkiaSharp.SKColors.Transparent);
+                bmp.SetPixel(width - 1, height - 1, SkiaSharp.SKColors.Transparent);
             }
+
+            return bmp;
         }
 
         public static string GetChecksum(string filePath)
@@ -963,10 +991,11 @@ namespace ShareX.HelpersLib
             return Task.WhenAll(tasks);
         }
 
-        public static void LockCursorToWindow(Form form)
+        public static void LockCursorToWindow(Avalonia.Controls.Window window)
         {
-            form.Activated += (sender, e) => Cursor.Clip = form.Bounds;
-            form.Deactivate += (sender, e) => Cursor.Clip = Rectangle.Empty;
+            // Cursor locking is not directly supported in Avalonia in a cross-platform way
+            // This would require platform-specific implementations (X11, Wayland, etc.)
+            // For now, this is a no-op - can be implemented later with platform interop
         }
 
         public static bool IsDefaultSettings<T>(IEnumerable<T> current, IEnumerable<T> source, Func<T, T, bool> predicate)

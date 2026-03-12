@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,45 +23,61 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia.Controls;
+using Avalonia.Layout;
 using System;
 
 namespace ShareX.HelpersLib
 {
-    public partial class LabeledComboBox : UserControl
+    public class LabeledComboBox : UserControl
     {
+        private readonly TextBlock lblText;
+        private readonly ComboBox cbList;
+
         public new string Text
         {
-            get
-            {
-                return lblText.Text;
-            }
-            set
-            {
-                lblText.Text = value;
-            }
+            get => lblText.Text;
+            set => lblText.Text = value;
         }
 
         public int SelectedIndex
         {
-            get
-            {
-                return cbList.SelectedIndex;
-            }
-            set
-            {
-                cbList.SelectedIndex = value;
-            }
+            get => cbList.SelectedIndex;
+            set => cbList.SelectedIndex = value;
         }
 
-        public event EventHandler SelectedIndexChanged
+        public object SelectedItem
         {
-            add { cbList.SelectedIndexChanged += value; }
-            remove { cbList.SelectedIndexChanged -= value; }
+            get => cbList.SelectedItem;
+            set => cbList.SelectedItem = value;
         }
+
+        public event EventHandler<SelectionChangedEventArgs> SelectedIndexChanged;
 
         public LabeledComboBox()
         {
-            InitializeComponent();
+            lblText = new TextBlock
+            {
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            cbList = new ComboBox
+            {
+                MinWidth = 80
+            };
+
+            cbList.SelectionChanged += (s, e) => SelectedIndexChanged?.Invoke(s, e);
+
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 4
+            };
+
+            panel.Children.Add(lblText);
+            panel.Children.Add(cbList);
+
+            Content = panel;
         }
 
         public void Add(object item)
@@ -71,8 +87,15 @@ namespace ShareX.HelpersLib
 
         public void AddRange(object[] items)
         {
-            cbList.Items.AddRange(items);
-            cbList.AutoSizeDropDown();
+            foreach (var item in items)
+            {
+                cbList.Items.Add(item);
+            }
+        }
+
+        public void Clear()
+        {
+            cbList.Items.Clear();
         }
     }
 }

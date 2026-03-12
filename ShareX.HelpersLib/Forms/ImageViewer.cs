@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,15 +23,23 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using ShareX.HelpersLib.Properties;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace ShareX.HelpersLib
 {
-    public class ImageViewer : Form
+    public class ImageViewer : Window
     {
-        public Image CurrentImage { get; private set; }
+        public SKBitmap CurrentImage { get; private set; }
         public string CurrentImageFilePath { get; private set; }
         public bool SupportWrap { get; set; }
         public bool CanNavigate => Images != null && Images.Length > 1;
@@ -42,11 +50,16 @@ namespace ShareX.HelpersLib
         public int NavigationButtonWidth { get; set; } = 100;
         public string Status { get; private set; }
 
-        private ImageViewer(Image img)
+        private Avalonia.Controls.Image imageControl;
+        private TextBlock lblStatus;
+        private TextBlock lblLeft;
+        private TextBlock lblRight;
+        private Avalonia.Media.Imaging.Bitmap displayBitmap;
+
+        private ImageViewer(SKBitmap img)
         {
             InitializeComponent();
             ShareXResources.ApplyTheme(this);
-
             LoadImage(img);
         }
 
@@ -61,11 +74,99 @@ namespace ShareX.HelpersLib
             LoadCurrentImage();
         }
 
-        private void LoadImage(Image img)
+        private void InitializeComponent()
+        {
+            Title = Resources.ShareXImageViewer;
+            WindowState = WindowState.FullScreen;
+            SystemDecorations = SystemDecorations.None;
+            Background = Brushes.Black;
+            Topmost = true;
+
+            var grid = new Grid();
+
+            imageControl = new Avalonia.Controls.Image
+            {
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            grid.Children.Add(imageControl);
+
+            lblStatus = new TextBlock
+            {
+                FontSize = 16,
+                FontFamily = new FontFamily("Arial"),
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)),
+                Padding = new Thickness(10, 5),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                IsVisible = false
+            };
+            grid.Children.Add(lblStatus);
+
+            lblLeft = new TextBlock
+            {
+                Text = "‹",
+                FontSize = 60,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(64, 0, 0, 0)),
+                Width = NavigationButtonWidth,
+                TextAlignment = TextAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                IsVisible = false,
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+            lblLeft.PointerPressed += LblLeft_PointerPressed;
+            grid.Children.Add(lblLeft);
+
+            lblRight = new TextBlock
+            {
+                Text = "›",
+                FontSize = 60,
+                FontWeight = FontWeight.Bold,
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(64, 0, 0, 0)),
+                Width = NavigationButtonWidth,
+                TextAlignment = TextAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                IsVisible = false,
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+            lblRight.PointerPressed += LblRight_PointerPressed;
+            grid.Children.Add(lblRight);
+
+            Content = grid;
+
+            KeyDown += ImageViewer_KeyDown;
+            PointerPressed += ImageViewer_PointerPressed;
+            PointerMoved += ImageViewer_PointerMoved;
+            PointerWheelChanged += ImageViewer_PointerWheelChanged;
+            Deactivated += ImageViewer_Deactivated;
+        }
+
+        private void LoadImage(SKBitmap img)
         {
             CurrentImage?.Dispose();
+            displayBitmap?.Dispose();
             CurrentImage = img;
-            pbPreview.LoadImage(CurrentImage);
+
+            if (img != null)
+            {
+                using var data = img.Encode(SKEncodedImageFormat.Png, 100);
+                using var stream = new MemoryStream();
+                data.SaveTo(stream);
+                stream.Position = 0;
+                displayBitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+                imageControl.Source = displayBitmap;
+            }
+            else
+            {
+                imageControl.Source = null;
+            }
         }
 
         private void LoadCurrentImage()
@@ -74,7 +175,7 @@ namespace ShareX.HelpersLib
             {
                 CurrentImageIndex = CurrentImageIndex.Clamp(0, Images.Length - 1);
                 CurrentImageFilePath = Images[CurrentImageIndex];
-                Image img = ImageHelpers.LoadImage(CurrentImageFilePath);
+                SKBitmap img = ImageHelpers.LoadImage(CurrentImageFilePath);
                 LoadImage(img);
             }
 
@@ -90,13 +191,9 @@ namespace ShareX.HelpersLib
                 if (SupportWrap)
                 {
                     if (nextImageIndex > Images.Length - 1)
-                    {
                         nextImageIndex = 0;
-                    }
                     else if (nextImageIndex < 0)
-                    {
                         nextImageIndex = Images.Length - 1;
-                    }
                 }
 
                 nextImageIndex = nextImageIndex.Clamp(0, Images.Length - 1);
@@ -116,19 +213,11 @@ namespace ShareX.HelpersLib
             for (int i = 0; i < Images.Length; i++)
             {
                 string imageFilePath = Images[i];
-
                 bool isImageFile = !string.IsNullOrEmpty(imageFilePath) && FileHelpers.IsImageFile(imageFilePath);
 
                 if (i == CurrentImageIndex)
                 {
-                    if (isImageFile)
-                    {
-                        CurrentImageIndex = filteredImages.Count;
-                    }
-                    else
-                    {
-                        CurrentImageIndex = Math.Max(filteredImages.Count - 1, 0);
-                    }
+                    CurrentImageIndex = isImageFile ? filteredImages.Count : Math.Max(filteredImages.Count - 1, 0);
                 }
 
                 if (isImageFile)
@@ -150,7 +239,6 @@ namespace ShareX.HelpersLib
             }
 
             string fileName = FileHelpers.GetFileNameSafe(CurrentImageFilePath);
-
             if (!string.IsNullOrEmpty(fileName))
             {
                 fileName = fileName.Truncate(128, "...");
@@ -162,49 +250,37 @@ namespace ShareX.HelpersLib
                 AppendStatus($"{CurrentImage.Width} x {CurrentImage.Height}");
             }
 
-            lblStatus.Visible = !string.IsNullOrEmpty(Status);
+            lblStatus.IsVisible = !string.IsNullOrEmpty(Status);
             lblStatus.Text = Status;
-            lblStatus.Location = new Point((ClientSize.Width - lblStatus.Width) / 2, 0);
         }
 
         private void AppendStatus(string text)
         {
             if (!string.IsNullOrEmpty(Status))
-            {
                 Status += " │ ";
-            }
-
             Status += text;
         }
 
-        public static void ShowImage(Image img)
+        public static void ShowImage(SKBitmap img)
         {
             if (img != null)
             {
-                using (Image tempImage = img.CloneSafe())
+                var tempImage = img.Copy();
+                if (tempImage != null)
                 {
-                    if (tempImage != null)
-                    {
-                        using (ImageViewer viewer = new ImageViewer(tempImage))
-                        {
-                            viewer.ShowDialog();
-                        }
-                    }
+                    var viewer = new ImageViewer(tempImage);
+                    viewer.ShowDialog(null);
                 }
             }
         }
 
         public static void ShowImage(string filePath)
         {
-            using (Bitmap bmp = ImageHelpers.LoadImage(filePath))
+            var bmp = ImageHelpers.LoadImage(filePath);
+            if (bmp != null)
             {
-                if (bmp != null)
-                {
-                    using (ImageViewer viewer = new ImageViewer(bmp))
-                    {
-                        viewer.ShowDialog();
-                    }
-                }
+                var viewer = new ImageViewer(bmp);
+                viewer.ShowDialog(null);
             }
         }
 
@@ -212,190 +288,78 @@ namespace ShareX.HelpersLib
         {
             if (files != null && files.Length > 0)
             {
-                using (ImageViewer viewer = new ImageViewer(files, imageIndex))
-                {
-                    viewer.ShowDialog();
-                }
+                var viewer = new ImageViewer(files, imageIndex);
+                viewer.ShowDialog(null);
             }
         }
 
-        private void ImageViewer_Shown(object sender, EventArgs e)
+        private void ImageViewer_KeyDown(object sender, KeyEventArgs e)
         {
-            UpdateStatus();
-
-            this.ForceActivate();
-        }
-
-        private void ImageViewer_Deactivate(object sender, EventArgs e)
-        {
-            Close();
-        }
-
-        private void lblLeft_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
+            switch (e.Key)
             {
-                NavigateImage(-1);
-                lblLeft.Visible = CanNavigateLeft;
-            }
-        }
-
-        private void lblRight_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                NavigateImage(1);
-                lblRight.Visible = CanNavigateRight;
-            }
-        }
-
-        private void pbPreview_MouseClick(object sender, MouseEventArgs e)
-        {
-            Close();
-        }
-
-        private void pbPreview_MouseMove(object sender, MouseEventArgs e)
-        {
-            lblStatus.Visible = !string.IsNullOrEmpty(Status) && !new Rectangle(lblStatus.Location, lblStatus.Size).Contains(e.Location);
-            lblLeft.Visible = CanNavigateLeft && new Rectangle(lblLeft.Location, lblLeft.Size).Contains(e.Location);
-            lblRight.Visible = CanNavigateRight && new Rectangle(lblRight.Location, lblRight.Size).Contains(e.Location);
-        }
-
-        private void pbPreview_MouseWheel(object sender, MouseEventArgs e)
-        {
-            if (CanNavigateLeft && e.Delta > 0)
-            {
-                NavigateImage(-1);
-            }
-            else if (CanNavigateRight && e.Delta < 0)
-            {
-                NavigateImage(1);
-            }
-        }
-
-        private void pbPreview_KeyDown(object sender, KeyEventArgs e)
-        {
-            switch (e.KeyCode)
-            {
-                case Keys.Left:
+                case Key.Left:
                     NavigateImage(-1);
                     break;
-                case Keys.Right:
+                case Key.Right:
                     NavigateImage(1);
                     break;
-            }
-        }
-
-        private void pbPreview_KeyUp(object sender, KeyEventArgs e)
-        {
-            switch (e.KeyCode)
-            {
-                case Keys.Escape:
-                case Keys.Enter:
-                case Keys.Space:
+                case Key.Escape:
+                case Key.Enter:
+                case Key.Space:
                     Close();
                     break;
             }
         }
 
-        private void pbPreview_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        private void ImageViewer_PointerPressed(object sender, PointerPressedEventArgs e)
         {
-            switch (e.KeyCode)
+            var point = e.GetCurrentPoint(this);
+            if (point.Properties.IsLeftButtonPressed)
             {
-                case Keys.Left:
-                case Keys.Right:
-                    e.IsInputKey = true;
-                    break;
+                Close();
             }
         }
 
-        private void lblStatus_MouseEnter(object sender, EventArgs e)
+        private void ImageViewer_PointerMoved(object sender, PointerEventArgs e)
         {
-            lblStatus.Visible = false;
+            var pos = e.GetPosition(this);
+            lblLeft.IsVisible = CanNavigateLeft && pos.X < NavigationButtonWidth;
+            lblRight.IsVisible = CanNavigateRight && pos.X > Bounds.Width - NavigationButtonWidth;
+            lblStatus.IsVisible = !string.IsNullOrEmpty(Status) && pos.Y < 50;
         }
 
-        #region Windows Form Designer generated code
-
-        private System.ComponentModel.IContainer components = null;
-
-        protected override void Dispose(bool disposing)
+        private void ImageViewer_PointerWheelChanged(object sender, PointerWheelEventArgs e)
         {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
+            if (CanNavigateLeft && e.Delta.Y > 0)
+                NavigateImage(-1);
+            else if (CanNavigateRight && e.Delta.Y < 0)
+                NavigateImage(1);
+        }
 
+        private void ImageViewer_Deactivated(object sender, EventArgs e)
+        {
+            Close();
+        }
+
+        private void LblLeft_PointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            NavigateImage(-1);
+            lblLeft.IsVisible = CanNavigateLeft;
+            e.Handled = true;
+        }
+
+        private void LblRight_PointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            NavigateImage(1);
+            lblRight.IsVisible = CanNavigateRight;
+            e.Handled = true;
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
             CurrentImage?.Dispose();
-
-            base.Dispose(disposing);
+            displayBitmap?.Dispose();
         }
-
-        private void InitializeComponent()
-        {
-            pbPreview = new MyPictureBox();
-            lblStatus = new Label();
-            lblLeft = new Label();
-            lblRight = new Label();
-            SuspendLayout();
-
-            BackColor = SystemColors.Window;
-            Bounds = CaptureHelpers.GetActiveScreenBounds();
-            DoubleBuffered = true;
-            FormBorderStyle = FormBorderStyle.None;
-            Text = Resources.ShareXImageViewer;
-            TopMost = true;
-            WindowState = FormWindowState.Normal;
-            StartPosition = FormStartPosition.Manual;
-
-            lblStatus.AutoSize = true;
-            lblStatus.Font = new Font("Arial", 13f);
-            lblStatus.Padding = new Padding(5);
-            lblStatus.TextAlign = ContentAlignment.MiddleCenter;
-            Controls.Add(lblStatus);
-
-            lblLeft.Cursor = Cursors.Hand;
-            lblLeft.Font = new Font("Arial", 50f, FontStyle.Bold);
-            lblLeft.Location = new Point(0, 0);
-            lblLeft.Text = "‹";
-            lblLeft.TextAlign = ContentAlignment.MiddleCenter;
-            lblLeft.Size = new Size(NavigationButtonWidth, Bounds.Height);
-            lblLeft.MouseDown += lblLeft_MouseDown;
-            Controls.Add(lblLeft);
-
-            lblRight.Cursor = Cursors.Hand;
-            lblRight.Font = new Font("Arial", 50f, FontStyle.Bold);
-            lblRight.Location = new Point(Bounds.Width - NavigationButtonWidth, 0);
-            lblRight.Text = "›";
-            lblRight.TextAlign = ContentAlignment.MiddleCenter;
-            lblRight.Size = new Size(NavigationButtonWidth, Bounds.Height);
-            lblRight.MouseDown += lblRight_MouseDown;
-            Controls.Add(lblRight);
-
-            pbPreview.Dock = DockStyle.Fill;
-            pbPreview.DrawCheckeredBackground = true;
-            pbPreview.Location = new Point(0, 0);
-            pbPreview.Size = new Size(100, 100);
-            pbPreview.TabIndex = 0;
-            Controls.Add(pbPreview);
-
-            Shown += ImageViewer_Shown;
-            Deactivate += ImageViewer_Deactivate;
-            pbPreview.MouseClick += pbPreview_MouseClick;
-            pbPreview.MouseMove += pbPreview_MouseMove;
-            pbPreview.MouseWheel += pbPreview_MouseWheel;
-            pbPreview.KeyDown += pbPreview_KeyDown;
-            pbPreview.KeyUp += pbPreview_KeyUp;
-            pbPreview.PreviewKeyDown += pbPreview_PreviewKeyDown;
-            lblStatus.MouseEnter += lblStatus_MouseEnter;
-
-            ResumeLayout(false);
-        }
-
-        private MyPictureBox pbPreview;
-        private Label lblStatus;
-        private Label lblLeft;
-        private Label lblRight;
-
-        #endregion Windows Form Designer generated code
     }
 }

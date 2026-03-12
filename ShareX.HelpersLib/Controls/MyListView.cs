@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,116 +23,88 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Collections;
+using Avalonia.Controls;
+using Avalonia.Input;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
+using System.Linq;
 
 namespace ShareX.HelpersLib
 {
-    public class MyListView : ListView
+    public class MyListView : UserControl
     {
         public delegate void ListViewItemMovedEventHandler(object sender, int oldIndex, int newIndex);
 
         public event ListViewItemMovedEventHandler ItemMoving;
         public event ListViewItemMovedEventHandler ItemMoved;
 
-        [DefaultValue(false)]
         public bool AutoFillColumn { get; set; }
-
-        [DefaultValue(-1)]
-        public int AutoFillColumnIndex { get; set; }
-
-        [DefaultValue(false)]
+        public int AutoFillColumnIndex { get; set; } = -1;
         public bool AllowColumnSort { get; set; }
-
-        // Note: AllowDrag also need to be true.
-        [DefaultValue(false)]
         public bool AllowItemDrag { get; set; }
-
-        [DefaultValue(true)]
-        public bool AllowSelectAll { get; set; }
-
-        [DefaultValue(false)]
+        public bool AllowSelectAll { get; set; } = true;
         public bool DisableDeselect { get; set; }
+        public bool FullRowSelect { get; set; } = true;
 
-        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        private readonly ListBox listBox;
+        private readonly ObservableCollection<MyListViewItem> items;
+
+        public IList<MyListViewItem> Items => items;
+        public IList<MyListViewItem> SelectedItems => listBox.SelectedItems.Cast<MyListViewItem>().ToList();
+        public IList<int> SelectedIndices => SelectedItems.Select(i => items.IndexOf(i)).ToList();
+
         public int SelectedIndex
         {
-            get
-            {
-                if (SelectedIndices.Count > 0)
-                {
-                    return SelectedIndices[0];
-                }
-
-                return -1;
-            }
+            get => listBox.SelectedIndex;
             set
             {
                 UnselectAll();
-
-                if (value > -1)
+                if (value >= 0 && value < items.Count)
                 {
-                    ListViewItem lvi = Items[value];
-                    lvi.EnsureVisible();
-                    lvi.Selected = true;
+                    listBox.SelectedIndex = value;
+                    listBox.ScrollIntoView(items[value]);
                 }
             }
         }
-
-        private ListViewColumnSorter lvwColumnSorter;
-        private int lineIndex = -1;
-        private int lastLineIndex = -1;
-        private ListViewItem dragOverItem;
 
         public MyListView()
         {
-            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.EnableNotifyMessage, true);
-
-            AutoFillColumn = false;
-            AutoFillColumnIndex = -1;
-            AllowColumnSort = false;
-            AllowSelectAll = true;
-            FullRowSelect = true;
-            View = View.Details;
-
-            lvwColumnSorter = new ListViewColumnSorter();
-            ListViewItemSorter = lvwColumnSorter;
-        }
-
-        public void FillColumn(int index)
-        {
-            if (View == View.Details && Columns.Count > 0 && index >= -1 && index < Columns.Count)
+            items = new ObservableCollection<MyListViewItem>();
+            
+            listBox = new ListBox
             {
-                if (index == -1)
-                {
-                    index = Columns.Count - 1;
-                }
+                SelectionMode = SelectionMode.Multiple,
+                ItemsSource = items
+            };
 
-                int width = 0;
+            listBox.SelectionChanged += ListBox_SelectionChanged;
+            listBox.KeyDown += ListBox_KeyDown;
 
-                for (int i = 0; i < Columns.Count; i++)
-                {
-                    if (i != index) width += Columns[i].Width;
-                }
-
-                int columnWidth = ClientSize.Width - width;
-
-                if (columnWidth > 0 && Columns[index].Width != columnWidth)
-                {
-                    Columns[index].Width = columnWidth;
-                }
-            }
+            Content = listBox;
         }
 
-        public void FillLastColumn()
+        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            FillColumn(-1);
+            // Handle selection changes
+        }
+
+        private void ListBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.A && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            {
+                SelectAll();
+                e.Handled = true;
+            }
         }
 
         public void Select(int index)
         {
-            if (Items.Count > 0 && index > -1 && index < Items.Count)
+            if (items.Count > 0 && index >= 0 && index < items.Count)
             {
                 SelectedIndex = index;
             }
@@ -140,242 +112,124 @@ namespace ShareX.HelpersLib
 
         public void SelectLast()
         {
-            if (Items.Count > 0)
+            if (items.Count > 0)
             {
-                SelectedIndex = Items.Count - 1;
+                SelectedIndex = items.Count - 1;
             }
         }
 
-        public void SelectSingle(ListViewItem lvi)
+        public void SelectSingle(MyListViewItem item)
         {
             UnselectAll();
-
-            if (lvi != null)
+            if (item != null)
             {
-                lvi.Selected = true;
+                listBox.SelectedItem = item;
             }
         }
 
         public void SelectAll()
         {
-            if (AllowSelectAll && MultiSelect)
+            if (AllowSelectAll)
             {
-                foreach (ListViewItem lvi in Items)
-                {
-                    lvi.Selected = true;
-                }
+                listBox.SelectAll();
             }
         }
 
         public void UnselectAll()
         {
-            if (MultiSelect)
-            {
-                SelectedItems.Clear();
-            }
+            listBox.SelectedItems.Clear();
         }
 
         public void EnsureSelectedVisible()
         {
             if (SelectedItems.Count > 0)
             {
-                SelectedItems[0].EnsureVisible();
+                listBox.ScrollIntoView(SelectedItems[0]);
             }
         }
 
-        protected override void OnKeyDown(KeyEventArgs e)
+        public void AddItem(MyListViewItem item)
         {
-            if (e.KeyData == (Keys.Control | Keys.A))
-            {
-                SelectAll();
-            }
-
-            base.OnKeyDown(e);
+            items.Add(item);
         }
 
-        [DebuggerStepThrough]
-        protected override void WndProc(ref Message m)
+        public void RemoveItem(MyListViewItem item)
         {
-            if (AutoFillColumn && m.Msg == (int)WindowsMessages.PAINT && !DesignMode)
-            {
-                FillColumn(AutoFillColumnIndex);
-            }
+            items.Remove(item);
+        }
 
-            if (m.Msg == (int)WindowsMessages.ERASEBKGND)
+        public void RemoveItemAt(int index)
+        {
+            if (index >= 0 && index < items.Count)
             {
+                items.RemoveAt(index);
+            }
+        }
+
+        public void InsertItem(int index, MyListViewItem item)
+        {
+            items.Insert(index, item);
+        }
+
+        public void Clear()
+        {
+            items.Clear();
+        }
+
+        public void MoveItem(int oldIndex, int newIndex)
+        {
+            if (oldIndex < 0 || oldIndex >= items.Count || newIndex < 0 || newIndex >= items.Count)
                 return;
-            }
 
-            if (DisableDeselect && m.Msg >= (int)WindowsMessages.LBUTTONDOWN && m.Msg <= (int)WindowsMessages.MBUTTONDBLCLK)
-            {
-                Point pos = new Point(m.LParam.ToInt32() & 0xffff, m.LParam.ToInt32() >> 16);
-                ListViewHitTestInfo hit = HitTest(pos);
-                switch (hit.Location)
-                {
-                    case ListViewHitTestLocations.AboveClientArea:
-                    case ListViewHitTestLocations.BelowClientArea:
-                    case ListViewHitTestLocations.LeftOfClientArea:
-                    case ListViewHitTestLocations.RightOfClientArea:
-                    case ListViewHitTestLocations.None:
-                        return;
-                }
-            }
-
-            base.WndProc(ref m);
-
-            if (m.Msg == (int)WindowsMessages.PAINT && lineIndex >= 0)
-            {
-                Rectangle rc = Items[lineIndex < Items.Count ? lineIndex : lineIndex - 1].GetBounds(ItemBoundsPortion.Entire);
-                DrawInsertionLine(rc.Left, rc.Right, lineIndex < Items.Count ? rc.Top : rc.Bottom);
-            }
-        }
-
-        protected override void OnItemDrag(ItemDragEventArgs e)
-        {
-            base.OnItemDrag(e);
-
-            if (AllowDrop && AllowItemDrag && e.Button == MouseButtons.Left)
-            {
-                DoDragDrop(e.Item, DragDropEffects.Move);
-            }
-        }
-
-        protected override void OnDragOver(DragEventArgs drgevent)
-        {
-            base.OnDragOver(drgevent);
-
-            if (drgevent.Data.GetData(typeof(ListViewItem)) is ListViewItem lvi && lvi.ListView == this)
-            {
-                drgevent.Effect = DragDropEffects.Move;
-
-                Point cp = PointToClient(new Point(drgevent.X, drgevent.Y));
-                dragOverItem = GetItemAt(cp.X, cp.Y);
-
-                if (dragOverItem != null)
-                {
-                    lineIndex = dragOverItem.Index;
-                }
-                else
-                {
-                    lineIndex = Items.Count;
-                }
-
-                if (lineIndex != lastLineIndex)
-                {
-                    Invalidate();
-                }
-
-                lastLineIndex = lineIndex;
-            }
-        }
-
-        protected override void OnDragDrop(DragEventArgs drgevent)
-        {
-            base.OnDragDrop(drgevent);
-
-            if (drgevent.Data.GetData(typeof(ListViewItem)) is ListViewItem lvi && lvi.ListView == this && lvi != dragOverItem)
-            {
-                int oldIndex = lvi.Index;
-                int newIndex;
-
-                if (dragOverItem != null)
-                {
-                    newIndex = dragOverItem.Index;
-
-                    if (newIndex > oldIndex)
-                    {
-                        newIndex--;
-                    }
-                }
-                else
-                {
-                    newIndex = Items.Count - 1;
-                }
-
-                OnItemMoving(oldIndex, newIndex);
-
-                Items.RemoveAt(oldIndex);
-                Items.Insert(newIndex, lvi);
-
-                OnItemMoved(oldIndex, newIndex);
-            }
-
-            lineIndex = lastLineIndex = -1;
-            Invalidate();
-        }
-
-        protected void OnItemMoving(int oldIndex, int newIndex)
-        {
             ItemMoving?.Invoke(this, oldIndex, newIndex);
-        }
+            
+            var item = items[oldIndex];
+            items.RemoveAt(oldIndex);
+            items.Insert(newIndex, item);
 
-        protected void OnItemMoved(int oldIndex, int newIndex)
-        {
             ItemMoved?.Invoke(this, oldIndex, newIndex);
         }
+    }
 
-        protected override void OnDragLeave(EventArgs e)
+    public class MyListViewItem : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private string text;
+        public string Text
         {
-            base.OnDragLeave(e);
-
-            lineIndex = lastLineIndex = -1;
-            Invalidate();
+            get => text;
+            set
+            {
+                text = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Text)));
+            }
         }
 
-        protected override void OnColumnClick(ColumnClickEventArgs e)
-        {
-            base.OnColumnClick(e);
+        public object Tag { get; set; }
 
-            if (AllowColumnSort)
+        private List<string> subItems = new List<string>();
+        public List<string> SubItems => subItems;
+
+        public MyListViewItem() { }
+
+        public MyListViewItem(string text)
+        {
+            Text = text;
+        }
+
+        public MyListViewItem(string[] items)
+        {
+            if (items.Length > 0)
             {
-                if (e.Column == lvwColumnSorter.SortColumn)
+                Text = items[0];
+                for (int i = 1; i < items.Length; i++)
                 {
-                    if (lvwColumnSorter.Order == SortOrder.Ascending)
-                    {
-                        lvwColumnSorter.Order = SortOrder.Descending;
-                    }
-                    else
-                    {
-                        lvwColumnSorter.Order = SortOrder.Ascending;
-                    }
+                    subItems.Add(items[i]);
                 }
-                else
-                {
-                    lvwColumnSorter.SortColumn = e.Column;
-                    lvwColumnSorter.Order = SortOrder.Ascending;
-                }
-
-                // If the column is tagged as a DateTime, then sort by date
-                lvwColumnSorter.SortByDate = Columns[e.Column].Tag is DateTime;
-
-                Cursor.Current = Cursors.WaitCursor;
-                Sort();
-                Cursor.Current = Cursors.Default;
             }
         }
 
-        private void DrawInsertionLine(int left, int right, int y)
-        {
-            using (Graphics g = CreateGraphics())
-            {
-                g.DrawLine(SystemPens.HotTrack, left, y, right - 1, y);
-
-                Point[] leftTriangle = new Point[] { new Point(left, y - 4), new Point(left + 7, y), new Point(left, y + 4) };
-                g.FillPolygon(SystemBrushes.HotTrack, leftTriangle);
-
-                Point[] rightTriangle = new Point[] { new Point(right, y - 4), new Point(right - 8, y), new Point(right, y + 4) };
-                g.FillPolygon(SystemBrushes.HotTrack, rightTriangle);
-            }
-        }
-
-        protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
-        {
-            base.ScaleControl(factor, specified);
-
-            foreach (ColumnHeader column in Columns)
-            {
-                column.Width = (int)Math.Round(column.Width * factor.Width);
-            }
-        }
+        public override string ToString() => Text;
     }
 }

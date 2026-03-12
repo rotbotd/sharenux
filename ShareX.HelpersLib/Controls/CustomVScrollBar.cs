@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,78 +23,61 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
+using SkiaSharp;
 using System;
 
 namespace ShareX.HelpersLib
 {
-    public class CustomVScrollBar : Control
+    public class CustomVScrollBar : Avalonia.Controls.Control
     {
         public event EventHandler ValueChanged;
 
-        private int minimum;
+        public static readonly StyledProperty<int> MinimumProperty =
+            AvaloniaProperty.Register<CustomVScrollBar, int>(nameof(Minimum), 0);
+
+        public static readonly StyledProperty<int> MaximumProperty =
+            AvaloniaProperty.Register<CustomVScrollBar, int>(nameof(Maximum), 100);
+
+        public static readonly StyledProperty<int> ValueProperty =
+            AvaloniaProperty.Register<CustomVScrollBar, int>(nameof(Value), 0);
+
+        public static readonly StyledProperty<int> PageSizeProperty =
+            AvaloniaProperty.Register<CustomVScrollBar, int>(nameof(PageSize), 10);
 
         public int Minimum
         {
-            get
-            {
-                return minimum;
-            }
-            set
-            {
-                minimum = value;
-                Invalidate();
-            }
+            get => GetValue(MinimumProperty);
+            set => SetValue(MinimumProperty, value);
         }
-
-        private int maximum;
 
         public int Maximum
         {
-            get
-            {
-                return maximum;
-            }
-            set
-            {
-                maximum = value;
-                Invalidate();
-            }
+            get => GetValue(MaximumProperty);
+            set => SetValue(MaximumProperty, value);
         }
-
-        private int currentValue;
 
         public int Value
         {
-            get
-            {
-                return currentValue;
-            }
+            get => GetValue(ValueProperty);
             set
             {
                 int newValue = Math.Max(Minimum, Math.Min(value, Maximum));
-
-                if (currentValue != newValue)
+                if (GetValue(ValueProperty) != newValue)
                 {
-                    currentValue = newValue;
-                    Invalidate();
+                    SetValue(ValueProperty, newValue);
                     ValueChanged?.Invoke(this, EventArgs.Empty);
                 }
             }
         }
 
-        private int pageSize;
-
         public int PageSize
         {
-            get
-            {
-                return pageSize;
-            }
-            set
-            {
-                pageSize = value;
-                Invalidate();
-            }
+            get => GetValue(PageSizeProperty);
+            set => SetValue(PageSizeProperty, value);
         }
 
         public int SmallScrollStep { get; set; } = 20;
@@ -102,127 +85,140 @@ namespace ShareX.HelpersLib
 
         private bool isDragging;
         private bool isThumbHovered;
-        private int dragOffset = 0;
+        private double dragOffset = 0;
 
         public CustomVScrollBar()
         {
-            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.UserPaint, true);
+            ClipToBounds = true;
         }
 
-        private Rectangle GetThumbRectangle()
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
-            int trackHeight = ClientRectangle.Height;
-            int thumbHeight = (int)((float)trackHeight * PageSize / (Maximum + PageSize));
-            thumbHeight = Math.Max(thumbHeight, 20);
+            base.OnPropertyChanged(change);
 
-            int movementRange = trackHeight - thumbHeight;
-            int thumbTop = Maximum > 0 ? (int)((float)Value / Maximum * movementRange) : 0;
-
-            return new Rectangle(0, thumbTop, ClientRectangle.Width, thumbHeight);
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-
-            using (SolidBrush trackBrush = new SolidBrush(ShareXResources.Theme.DarkBackgroundColor))
+            if (change.Property == MinimumProperty ||
+                change.Property == MaximumProperty ||
+                change.Property == ValueProperty ||
+                change.Property == PageSizeProperty)
             {
-                e.Graphics.FillRectangle(trackBrush, ClientRectangle);
+                InvalidateVisual();
             }
+        }
 
+        private Rect GetThumbRectangle()
+        {
+            double trackHeight = Bounds.Height;
             int effectivePageSize = Math.Max(PageSize, 1);
             int effectiveMaximum = Math.Max(Maximum, 0);
             int sum = Math.Max(effectiveMaximum + effectivePageSize, 1);
 
-            int thumbHeight = (int)((float)ClientRectangle.Height * effectivePageSize / sum);
+            double thumbHeight = trackHeight * effectivePageSize / sum;
             thumbHeight = Math.Max(thumbHeight, 20);
 
-            int movementRange = Math.Max(ClientRectangle.Height - thumbHeight, 0);
+            double movementRange = Math.Max(trackHeight - thumbHeight, 0);
+            double thumbTop = effectiveMaximum > 0 ? movementRange * Value / effectiveMaximum : 0;
 
-            int thumbTop = effectiveMaximum > 0 ? movementRange * Value / effectiveMaximum : 0;
-            Rectangle thumbRect = new Rectangle(0, thumbTop, ClientRectangle.Width, thumbHeight);
-
-            Color thumbColor = isThumbHovered ? ColorHelpers.LighterColor(ShareXResources.Theme.LightBackgroundColor, 0.1f) : ShareXResources.Theme.LightBackgroundColor;
-            using (SolidBrush thumbBrush = new SolidBrush(thumbColor))
-            {
-                e.Graphics.FillRectangle(thumbBrush, thumbRect);
-            }
-
-            using (Pen borderPen = new Pen(ColorHelpers.DarkerColor(ShareXResources.Theme.DarkBackgroundColor, 0.03f)))
-            {
-                e.Graphics.DrawLine(borderPen, thumbRect.X, thumbRect.Y, thumbRect.Right - 1, thumbRect.Y);
-                e.Graphics.DrawLine(borderPen, thumbRect.X, thumbRect.Bottom - 1, thumbRect.Right - 1, thumbRect.Bottom - 1);
-                e.Graphics.DrawLine(borderPen, ClientRectangle.X, ClientRectangle.Y, 0, ClientRectangle.Height);
-                e.Graphics.DrawLine(borderPen, ClientRectangle.Right - 1, ClientRectangle.Y, ClientRectangle.Right - 1, ClientRectangle.Bottom - 1);
-            }
+            return new Rect(0, thumbTop, Bounds.Width, thumbHeight);
         }
 
-        protected override void OnMouseDown(MouseEventArgs e)
+        public override void Render(DrawingContext context)
         {
-            int thumbHeight = (int)((float)ClientRectangle.Height * PageSize / (Maximum + PageSize));
-            thumbHeight = Math.Max(thumbHeight, 20);
-            int movementRange = ClientRectangle.Height - thumbHeight;
-            int thumbTop = movementRange * Value / Maximum;
-            Rectangle thumbRect = new Rectangle(0, thumbTop, ClientRectangle.Width, thumbHeight);
+            base.Render(context);
 
-            if (thumbRect.Contains(e.Location))
+            // Track background
+            var trackColor = ToAvaloniaColor(ShareXResources.Theme.DarkBackgroundColor);
+            context.FillRectangle(new SolidColorBrush(trackColor), new Rect(Bounds.Size));
+
+            // Thumb
+            var thumbRect = GetThumbRectangle();
+            var thumbBaseColor = ShareXResources.Theme.LightBackgroundColor;
+            var thumbColor = isThumbHovered 
+                ? ToAvaloniaColor(ColorHelpers.LighterColor(thumbBaseColor, 0.1f))
+                : ToAvaloniaColor(thumbBaseColor);
+            context.FillRectangle(new SolidColorBrush(thumbColor), thumbRect);
+
+            // Borders
+            var borderColor = ToAvaloniaColor(ColorHelpers.DarkerColor(ShareXResources.Theme.DarkBackgroundColor, 0.03f));
+            var borderPen = new Pen(new SolidColorBrush(borderColor), 1);
+            
+            context.DrawLine(borderPen, new Point(thumbRect.Left, thumbRect.Top), new Point(thumbRect.Right, thumbRect.Top));
+            context.DrawLine(borderPen, new Point(thumbRect.Left, thumbRect.Bottom), new Point(thumbRect.Right, thumbRect.Bottom));
+            context.DrawLine(borderPen, new Point(0, 0), new Point(0, Bounds.Height));
+            context.DrawLine(borderPen, new Point(Bounds.Width - 1, 0), new Point(Bounds.Width - 1, Bounds.Height));
+        }
+
+        private static Avalonia.Media.Color ToAvaloniaColor(SKColor c) =>
+            Avalonia.Media.Color.FromArgb(c.Alpha, c.Red, c.Green, c.Blue);
+
+        protected override void OnPointerPressed(PointerPressedEventArgs e)
+        {
+            base.OnPointerPressed(e);
+
+            var point = e.GetPosition(this);
+            var thumbRect = GetThumbRectangle();
+
+            if (thumbRect.Contains(point))
             {
                 isDragging = true;
-                dragOffset = e.Y - thumbTop;
+                dragOffset = point.Y - thumbRect.Top;
+                e.Pointer.Capture(this);
             }
             else
             {
-                int clickPosition = e.Y;
-
-                if (clickPosition < thumbTop)
+                if (point.Y < thumbRect.Top)
                 {
                     Value = Math.Max(Minimum, Value - PageSize);
                 }
-                else if (clickPosition > thumbTop + thumbHeight)
+                else if (point.Y > thumbRect.Bottom)
                 {
                     Value = Math.Min(Maximum, Value + PageSize);
                 }
             }
         }
 
-        protected override void OnMouseMove(MouseEventArgs e)
+        protected override void OnPointerMoved(PointerEventArgs e)
         {
+            base.OnPointerMoved(e);
+
+            var point = e.GetPosition(this);
+
             if (isDragging)
             {
-                Rectangle thumbRect = GetThumbRectangle();
-
-                int movementRange = ClientRectangle.Height - thumbRect.Height;
-                int newThumbTop = e.Y - dragOffset;
+                var thumbRect = GetThumbRectangle();
+                double movementRange = Math.Max(Bounds.Height - thumbRect.Height, 1);
+                double newThumbTop = point.Y - dragOffset;
                 newThumbTop = Math.Max(0, Math.Min(newThumbTop, movementRange));
 
-                Value = Maximum > 0 ? newThumbTop * Maximum / movementRange : 0;
+                Value = Maximum > 0 ? (int)(newThumbTop * Maximum / movementRange) : 0;
             }
             else
             {
-                Rectangle thumbRect = GetThumbRectangle();
-                bool hovered = thumbRect.Contains(e.Location);
+                var thumbRect = GetThumbRectangle();
+                bool hovered = thumbRect.Contains(point);
 
                 if (isThumbHovered != hovered)
                 {
                     isThumbHovered = hovered;
-                    Invalidate();
+                    InvalidateVisual();
                 }
             }
         }
 
-        protected override void OnMouseUp(MouseEventArgs e)
+        protected override void OnPointerReleased(PointerReleasedEventArgs e)
         {
+            base.OnPointerReleased(e);
             isDragging = false;
+            e.Pointer.Capture(null);
         }
 
-        protected override void OnMouseLeave(EventArgs e)
+        protected override void OnPointerExited(PointerEventArgs e)
         {
-            base.OnMouseLeave(e);
+            base.OnPointerExited(e);
 
             if (isThumbHovered)
             {
                 isThumbHovered = false;
-                Invalidate();
+                InvalidateVisual();
             }
         }
     }

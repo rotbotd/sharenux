@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShareX.HelpersLib.OutputBoxWindow"
+        Title="Output"
+        Width="984" Height="761" MinWidth="400" MinHeight="300"
+        WindowStartupLocation="CenterScreen">
+    
+    <TextBox x:Name="rtbText" 
+             IsReadOnly="True" 
+             AcceptsReturn="True" 
+             TextWrapping="Wrap"
+             FontSize="12"
+             FontFamily="Segoe UI"
+             Margin="8"
+             Text="Sample output text..."/>
+</Window>

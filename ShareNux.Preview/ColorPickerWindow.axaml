@@ -1,0 +1,101 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShareNux.Preview.ColorPickerWindow"
+        Title="ShareX - Color picker"
+        Width="697" Height="345"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen">
+    
+    <Canvas>
+        <!-- Color picker area (placeholder) -->
+        <Border Canvas.Left="8" Canvas.Top="8" Width="292" Height="261" 
+                Background="#333" BorderBrush="#666" BorderThickness="1">
+            <TextBlock Text="Color Picker" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"/>
+        </Border>
+        
+        <!-- RGB Section -->
+        <RadioButton x:Name="rbRed" Canvas.Left="312" Canvas.Top="16" Content="Red:"/>
+        <NumericUpDown x:Name="nudRed" Canvas.Left="408" Canvas.Top="14" Width="48" Minimum="0" Maximum="255" Value="255"/>
+        
+        <RadioButton x:Name="rbGreen" Canvas.Left="312" Canvas.Top="48" Content="Green:"/>
+        <NumericUpDown x:Name="nudGreen" Canvas.Left="408" Canvas.Top="46" Width="48" Minimum="0" Maximum="255" Value="128"/>
+        
+        <RadioButton x:Name="rbBlue" Canvas.Left="312" Canvas.Top="80" Content="Blue:"/>
+        <NumericUpDown x:Name="nudBlue" Canvas.Left="408" Canvas.Top="78" Width="48" Minimum="0" Maximum="255" Value="64"/>
+        
+        <!-- HSB Section -->
+        <RadioButton x:Name="rbHue" Canvas.Left="312" Canvas.Top="112" Content="Hue:" IsChecked="True"/>
+        <NumericUpDown x:Name="nudHue" Canvas.Left="408" Canvas.Top="108" Width="48" Minimum="0" Maximum="360" Value="180"/>
+        <TextBlock Canvas.Left="462" Canvas.Top="112" Text="°"/>
+        
+        <RadioButton x:Name="rbSaturation" Canvas.Left="312" Canvas.Top="144" Content="Saturation:"/>
+        <NumericUpDown x:Name="nudSaturation" Canvas.Left="408" Canvas.Top="142" Width="48" Minimum="0" Maximum="100" Value="75"/>
+        <TextBlock Canvas.Left="462" Canvas.Top="146" Text="%"/>
+        
+        <RadioButton x:Name="rbBrightness" Canvas.Left="312" Canvas.Top="176" Content="Brightness:"/>
+        <NumericUpDown x:Name="nudBrightness" Canvas.Left="408" Canvas.Top="174" Width="48" Minimum="0" Maximum="100" Value="50"/>
+        <TextBlock Canvas.Left="462" Canvas.Top="178" Text="%"/>
+        
+        <!-- Alpha -->
+        <TextBlock Canvas.Left="485" Canvas.Top="18" Text="Alpha:" VerticalAlignment="Center"/>
+        <NumericUpDown x:Name="nudAlpha" Canvas.Left="600" Canvas.Top="14" Width="48" Minimum="0" Maximum="255" Value="255"/>
+        <Button x:Name="cbTransparent" Canvas.Left="652" Canvas.Top="13" Width="23" Height="23" Content="" ToolTip.Tip="Transparent"/>
+        
+        <!-- CMYK -->
+        <TextBlock Canvas.Left="485" Canvas.Top="50" Text="Cyan:" VerticalAlignment="Center"/>
+        <NumericUpDown x:Name="nudCyan" Canvas.Left="600" Canvas.Top="46" Width="48" Minimum="0" Maximum="100" Value="0" FormatString="0.0"/>
+        <TextBlock Canvas.Left="658" Canvas.Top="50" Text="%" VerticalAlignment="Center"/>
+        
+        <TextBlock Canvas.Left="485" Canvas.Top="82" Text="Magenta:" VerticalAlignment="Center"/>
+        <NumericUpDown x:Name="nudMagenta" Canvas.Left="600" Canvas.Top="78" Width="48" Minimum="0" Maximum="100" Value="0" FormatString="0.0"/>
+        <TextBlock Canvas.Left="658" Canvas.Top="82" Text="%" VerticalAlignment="Center"/>
+        
+        <TextBlock Canvas.Left="485" Canvas.Top="114" Text="Yellow:" VerticalAlignment="Center"/>
+        <NumericUpDown x:Name="nudYellow" Canvas.Left="600" Canvas.Top="110" Width="48" Minimum="0" Maximum="100" Value="0" FormatString="0.0"/>
+        <TextBlock Canvas.Left="658" Canvas.Top="114" Text="%" VerticalAlignment="Center"/>
+        
+        <TextBlock Canvas.Left="485" Canvas.Top="146" Text="Key:" VerticalAlignment="Center"/>
+        <NumericUpDown x:Name="nudKey" Canvas.Left="600" Canvas.Top="142" Width="48" Minimum="0" Maximum="100" Value="0" FormatString="0.0"/>
+        <TextBlock Canvas.Left="658" Canvas.Top="146" Text="%" VerticalAlignment="Center"/>
+        
+        <!-- Hex -->
+        <TextBlock Canvas.Left="485" Canvas.Top="178" Text="Hex:" VerticalAlignment="Center"/>
+        <TextBox x:Name="txtHex" Canvas.Left="600" Canvas.Top="172" Width="72" Text="#FF8040"/>
+        
+        <!-- Decimal -->
+        <TextBlock Canvas.Left="485" Canvas.Top="210" Text="Decimal:" VerticalAlignment="Center"/>
+        <TextBox x:Name="txtDecimal" Canvas.Left="600" Canvas.Top="204" Width="72" Text="16744512"/>
+        
+        <!-- Name -->
+        <TextBlock Canvas.Left="309" Canvas.Top="208" Text="Name:"/>
+        <TextBlock x:Name="lblNameValue" Canvas.Left="347" Canvas.Top="208" Width="112" Text="Coral" TextAlignment="Right"/>
+        
+        <!-- Color preview -->
+        <TextBlock Canvas.Left="359" Canvas.Top="235" Text="Old:"/>
+        <TextBlock Canvas.Left="359" Canvas.Top="259" Text="New:"/>
+        <Border Canvas.Left="408" Canvas.Top="232" Width="48" Height="24" Background="#808080" BorderBrush="#666" BorderThickness="1"/>
+        <Border Canvas.Left="408" Canvas.Top="256" Width="48" Height="24" Background="#FF8040" BorderBrush="#666" BorderThickness="1"/>
+        
+        <!-- Cursor position panel (pCursorPosition at 488,232, size 192x48) -->
+        <TextBlock Canvas.Left="485" Canvas.Top="236" Text="Cursor position:"/>
+        <TextBlock Canvas.Left="600" Canvas.Top="236" Text="X:"/>
+        <TextBox x:Name="txtX" Canvas.Left="624" Canvas.Top="232" Width="48" Text="0" IsReadOnly="True"/>
+        <TextBlock Canvas.Left="600" Canvas.Top="260" Text="Y:"/>
+        <TextBox x:Name="txtY" Canvas.Left="624" Canvas.Top="256" Width="48" Text="0" IsReadOnly="True"/>
+        
+        <!-- Color palette selection -->
+        <RadioButton x:Name="rbRecentColors" Canvas.Left="8" Canvas.Top="272" Content="Recent colors" IsChecked="True"/>
+        <RadioButton x:Name="rbStandardColors" Canvas.Left="108" Canvas.Top="272" Content="Standard colors"/>
+        
+        <!-- Color palette -->
+        <Border Canvas.Left="8" Canvas.Top="293" Width="296" Height="40" Background="#222" BorderBrush="#444" BorderThickness="1">
+            <TextBlock Text="Color swatches" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray" FontSize="10"/>
+        </Border>
+        
+        <!-- Bottom buttons -->
+        <Button x:Name="btnScreenColorPicker" Canvas.Left="392" Canvas.Top="296" Width="32" Height="32" Content="🎯" ToolTip.Tip="Pick color from screen"/>
+        <Button x:Name="btnClipboardColorPicker" Canvas.Left="432" Canvas.Top="296" Width="32" Height="32" Content="📋" ToolTip.Tip="Pick color from clipboard"/>
+        <Button x:Name="mbCopy" Canvas.Left="472" Canvas.Top="296" Width="96" Height="32" Content="Copy ▼"/>
+        <Button x:Name="btnClose" Canvas.Left="576" Canvas.Top="296" Width="96" Height="32" Content="Close"/>
+    </Canvas>
+</Window>

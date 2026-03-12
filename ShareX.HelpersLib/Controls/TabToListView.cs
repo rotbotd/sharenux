@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,22 +23,30 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
 using System;
-using System.ComponentModel;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace ShareX.HelpersLib
 {
-    public partial class TabToListView : UserControl
+    /// <summary>
+    /// A control that displays tabs as a list view on the left side and content on the right.
+    /// Similar to settings pages in many applications.
+    /// </summary>
+    public class TabToListView : UserControl
     {
         private TabControl mainTabControl;
+        private ListBox listView;
+        private ContentControl contentArea;
+        private Grid splitContainer;
+        private ObservableCollection<TabListItem> listItems = new ObservableCollection<TabListItem>();
 
-        [Browsable(false)]
         public TabControl MainTabControl
         {
-            get
-            {
-                return mainTabControl;
-            }
+            get => mainTabControl;
             set
             {
                 mainTabControl = value;
@@ -46,143 +54,129 @@ namespace ShareX.HelpersLib
             }
         }
 
-        private int listViewSize;
-
+        private int listViewSize = 150;
         public int ListViewSize
         {
-            get
-            {
-                return listViewSize;
-            }
+            get => listViewSize;
             set
             {
                 listViewSize = value;
-                scMain.SplitterDistance = listViewSize;
-            }
-        }
-
-        public ImageList ImageList
-        {
-            get
-            {
-                return lvMain.SmallImageList;
-            }
-            set
-            {
-                lvMain.SmallImageList = tcMain.ImageList = value;
+                if (splitContainer != null)
+                {
+                    splitContainer.ColumnDefinitions[0].Width = new GridLength(listViewSize);
+                }
             }
         }
 
         public TabToListView()
         {
             InitializeComponent();
-            ListViewSize = 150;
+        }
+
+        private void InitializeComponent()
+        {
+            splitContainer = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions($"{listViewSize},*")
+            };
+
+            listView = new ListBox
+            {
+                ItemsSource = listItems,
+                Margin = new Thickness(0, 0, 5, 0)
+            };
+            listView.SelectionChanged += ListView_SelectionChanged;
+            Grid.SetColumn(listView, 0);
+            splitContainer.Children.Add(listView);
+
+            contentArea = new ContentControl
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+            Grid.SetColumn(contentArea, 1);
+            splitContainer.Children.Add(contentArea);
+
+            Content = splitContainer;
         }
 
         private void FillListView(TabControl tab)
         {
-            if (tab != null)
+            if (tab == null) return;
+
+            listItems.Clear();
+
+            foreach (var item in tab.Items)
             {
-                foreach (TabPage tabPage in tab.TabPages)
+                if (item is TabItem tabItem)
                 {
-                    ListViewGroup lvg = new ListViewGroup(tabPage.Text);
-                    lvMain.Groups.Add(lvg);
-
-                    foreach (Control control in tabPage.Controls)
+                    // Check if this tab contains nested tabs
+                    if (tabItem.Content is TabControl nestedTab)
                     {
-                        if (control is TabControl)
+                        string groupName = tabItem.Header?.ToString() ?? "";
+
+                        foreach (var nestedItem in nestedTab.Items)
                         {
-                            TabControl tab2 = control as TabControl;
-
-                            foreach (TabPage tabPage2 in tab2.TabPages)
+                            if (nestedItem is TabItem nestedTabItem)
                             {
-                                ListViewItem lvi = new ListViewItem(tabPage2.Text);
-                                lvi.ImageKey = tabPage2.ImageKey;
-                                lvi.Tag = tabPage2;
-                                lvi.Group = lvg;
-                                lvMain.Items.Add(lvi);
+                                listItems.Add(new TabListItem
+                                {
+                                    Text = nestedTabItem.Header?.ToString() ?? "",
+                                    Group = groupName,
+                                    Content = nestedTabItem.Content
+                                });
                             }
-
-                            tab2.TabPages.Clear();
                         }
                     }
-                }
-
-                if (lvMain.Items.Count > 0)
-                {
-                    lvMain.Items[0].Selected = true;
-                }
-            }
-        }
-
-        private void lvMain_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (lvMain.SelectedItems.Count == 0 && (e.Button == MouseButtons.Left || e.Button == MouseButtons.Right))
-            {
-                ListViewItem lvi = lvMain.GetItemAt(e.X, e.Y);
-
-                if (lvi == null)
-                {
-                    // Workaround for 1px space between items
-                    lvi = lvMain.GetItemAt(e.X, e.Y - 1);
-                }
-
-                if (lvi != null)
-                {
-                    lvi.Selected = true;
-                }
-            }
-        }
-
-        private void lvMain_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (lvMain.SelectedItems.Count > 0)
-            {
-                ListViewItem lvi = lvMain.SelectedItems[0];
-                TabPage tabPage = lvi.Tag as TabPage;
-                LoadTabPage(tabPage);
-            }
-        }
-
-        private void LoadTabPage(TabPage tabPage)
-        {
-            if (tabPage != null && !tcMain.TabPages.Contains(tabPage))
-            {
-                tcMain.TabPages.Clear();
-                tcMain.TabPages.Add(tabPage);
-                // Need to set ImageKey again otherwise icon not show up
-                tabPage.ImageKey = tabPage.ImageKey;
-                tabPage.Refresh();
-                lvMain.Focus();
-            }
-        }
-
-        public void NavigateToTabPage(TabPage tabPage)
-        {
-            if (tabPage != null)
-            {
-                foreach (ListViewItem lvi in lvMain.Items)
-                {
-                    TabPage currentTabPage = lvi.Tag as TabPage;
-
-                    if (currentTabPage == tabPage)
+                    else
                     {
-                        lvi.Selected = true;
-                        return;
+                        listItems.Add(new TabListItem
+                        {
+                            Text = tabItem.Header?.ToString() ?? "",
+                            Content = tabItem.Content
+                        });
                     }
+                }
+            }
+
+            if (listItems.Count > 0)
+            {
+                listView.SelectedIndex = 0;
+            }
+        }
+
+        private void ListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (listView.SelectedItem is TabListItem item && item.Content != null)
+            {
+                contentArea.Content = item.Content;
+            }
+        }
+
+        public void NavigateToTabPage(object content)
+        {
+            for (int i = 0; i < listItems.Count; i++)
+            {
+                if (listItems[i].Content == content)
+                {
+                    listView.SelectedIndex = i;
+                    return;
                 }
             }
         }
 
         public void FocusListView()
         {
-            lvMain.Focus();
+            listView.Focus();
         }
+    }
 
-        protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
-        {
-            base.ScaleControl(factor, specified);
-            scMain.SplitterDistance = (int)Math.Round(scMain.SplitterDistance * factor.Width);
-        }
+    public class TabListItem
+    {
+        public string Text { get; set; }
+        public string Group { get; set; }
+        public object Content { get; set; }
+
+        public override string ToString() => Text;
     }
 }

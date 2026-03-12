@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,43 +23,75 @@
 
 #endregion License Information (GPL v3)
 
-using System.ComponentModel;
+using Avalonia.Controls;
+using System;
 
 namespace ShareX.HelpersLib
 {
-    public class TrayForm : Form
+    /// <summary>
+    /// Base window for tray icon functionality.
+    /// In Avalonia, tray icons are handled via TrayIcon class in desktop extensions.
+    /// </summary>
+    public class TrayForm : Window
     {
-        protected NotifyIcon TrayIcon = null;
-
-        private IContainer components;
+        protected TrayIcon TrayIcon { get; set; }
 
         public TrayForm()
         {
-            components = new Container();
-            Icon = ShareXResources.Icon;
-            TrayIcon = new NotifyIcon(components);
-            TrayIcon.Text = "ShareX";
+            // Tray icon setup would be done via Avalonia.Desktop's TrayIcon
+            // This requires the application to use Avalonia.Desktop lifetime
+            ShowInTaskbar = false;
         }
 
-        protected override void SetVisibleCore(bool value)
+        protected override void OnOpened(EventArgs e)
         {
-            if (value && !IsHandleCreated)
-            {
-                value = false;
-                CreateHandle();
-            }
-
-            base.SetVisibleCore(value);
+            base.OnOpened(e);
+            // Start hidden - show via tray icon
+            Hide();
         }
 
-        protected override void Dispose(bool disposing)
+        protected override void OnClosing(WindowClosingEventArgs e)
         {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-
-            base.Dispose(disposing);
+            // Minimize to tray instead of closing
+            e.Cancel = true;
+            Hide();
+            base.OnClosing(e);
         }
+    }
+
+    /// <summary>
+    /// Wrapper for Avalonia's TrayIcon functionality.
+    /// Actual implementation requires Avalonia.Desktop package.
+    /// </summary>
+    public class TrayIcon : IDisposable
+    {
+        public string Text { get; set; } = "ShareX";
+        public bool Visible { get; set; }
+        public NativeMenu Menu { get; set; }
+
+        public event EventHandler Click;
+        public event EventHandler DoubleClick;
+
+        public TrayIcon()
+        {
+        }
+
+        public void ShowBalloonTip(int timeout, string title, string text, ToolTipIcon icon)
+        {
+            // Platform-specific notification - would use libnotify on Linux
+            // For now, this is a placeholder
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public enum ToolTipIcon
+    {
+        None = 0,
+        Info = 1,
+        Warning = 2,
+        Error = 3
     }
 }

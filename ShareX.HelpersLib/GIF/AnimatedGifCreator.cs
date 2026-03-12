@@ -25,6 +25,7 @@
 
 using System;
 using System.IO;
+using SkiaSharp;
 
 namespace ShareX.HelpersLib
 {
@@ -44,7 +45,7 @@ namespace ShareX.HelpersLib
             Repeat = repeat;
         }
 
-        public void AddFrame(Image img, GIFQuality quality = GIFQuality.Default)
+        public void AddFrame(SKBitmap img, GIFQuality quality = GIFQuality.Default)
         {
             GifClass gif = new GifClass();
             gif.LoadGifPicture(img, quality);
@@ -67,7 +68,7 @@ namespace ShareX.HelpersLib
 
         public void AddFrame(string path, GIFQuality quality = GIFQuality.Default)
         {
-            using (Bitmap bmp = ImageHelpers.LoadImage(path))
+            using (SKBitmap bmp = ImageHelpers.LoadImage(path))
             {
                 AddFrame(bmp, quality);
             }

@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,210 +23,269 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
 using System;
-using System.ComponentModel;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ShareX.HelpersLib
 {
-    public partial class TabToTreeView : UserControl
+    public class TabToTreeView : UserControl
     {
-        public delegate void TabChangedEventHandler(TabPage tabPage);
+        public delegate void TabChangedEventHandler(TabItem tabItem);
         public event TabChangedEventHandler TabChanged;
 
         private TabControl mainTabControl;
+        private readonly TreeView treeView;
+        private readonly TabControl displayTabControl;
+        private readonly SplitView splitView;
+        private readonly Border separator;
 
-        [Browsable(false)]
         public TabControl MainTabControl
         {
-            get
-            {
-                return mainTabControl;
-            }
+            get => mainTabControl;
             set
             {
                 if (mainTabControl != value)
                 {
                     mainTabControl = value;
-                    FillTreeView(tvMain.Nodes, mainTabControl);
-                    tvMain.ExpandAll();
+                    FillTreeView();
                 }
             }
         }
 
-        private int treeViewSize;
+        private double treeViewSize = 150;
 
-        public int TreeViewSize
+        public double TreeViewSize
         {
-            get
-            {
-                return treeViewSize;
-            }
+            get => treeViewSize;
             set
             {
                 treeViewSize = value;
-                scMain.SplitterDistance = treeViewSize;
+                splitView.OpenPaneLength = value;
             }
         }
 
-        public Font TreeViewFont
+        public IBrush LeftPanelBackColor
         {
-            get
-            {
-                return tvMain.Font;
-            }
-            set
-            {
-                tvMain.Font = value;
-            }
+            get => treeView.Background;
+            set => treeView.Background = value;
         }
 
-        public ImageList ImageList
+        public IBrush SeparatorColor
         {
-            get
-            {
-                return tvMain.ImageList;
-            }
-            set
-            {
-                tvMain.ImageList = value;
-            }
+            get => separator.Background;
+            set => separator.Background = value;
         }
 
-        public Color LeftPanelBackColor
-        {
-            get
-            {
-                return scMain.Panel1.BackColor;
-            }
-            set
-            {
-                pLeft.BackColor = value;
-                tvMain.BackColor = value;
-            }
-        }
-
-        public Color SeparatorColor
-        {
-            get
-            {
-                return pSeparator.BackColor;
-            }
-            set
-            {
-                pSeparator.BackColor = value;
-            }
-        }
-
-        [DefaultValue(false)]
         public bool AutoSelectChild { get; set; }
 
         public TabToTreeView()
         {
-            InitializeComponent();
-            TreeViewSize = 150;
+            treeView = new TreeView
+            {
+                SelectionMode = SelectionMode.Single
+            };
+            treeView.SelectionChanged += TreeView_SelectionChanged;
+
+            displayTabControl = new TabControl
+            {
+                IsVisible = false
+            };
+
+            separator = new Border
+            {
+                Width = 1,
+                Background = Brushes.Gray
+            };
+
+            var rightPanel = new DockPanel();
+            DockPanel.SetDock(separator, Dock.Left);
+            rightPanel.Children.Add(separator);
+            rightPanel.Children.Add(displayTabControl);
+
+            splitView = new SplitView
+            {
+                IsPaneOpen = true,
+                DisplayMode = SplitViewDisplayMode.Inline,
+                OpenPaneLength = treeViewSize,
+                PanePlacement = SplitViewPanePlacement.Left,
+                Pane = treeView,
+                Content = rightPanel
+            };
+
+            Content = splitView;
         }
 
-        private void FillTreeView(TreeNodeCollection nodeCollection, TabControl tab, TreeNode parent = null)
+        private void FillTreeView()
         {
-            if (nodeCollection != null && tab != null)
+            treeView.Items.Clear();
+
+            if (mainTabControl == null)
+                return;
+
+            foreach (var tabItem in mainTabControl.Items.OfType<TabItem>())
             {
-                foreach (TabPage tabPage in tab.TabPages)
+                var node = CreateTreeNode(tabItem);
+                if (node != null)
                 {
-                    if (parent != null && string.IsNullOrEmpty(tabPage.Text))
-                    {
-                        parent.Tag = tabPage;
-                        continue;
-                    }
+                    treeView.Items.Add(node);
+                }
+            }
 
-                    TreeNode treeNode = new TreeNode(tabPage.Text);
-                    if (!string.IsNullOrEmpty(tabPage.ImageKey))
-                    {
-                        treeNode.ImageKey = treeNode.SelectedImageKey = tabPage.ImageKey;
-                    }
-                    treeNode.Tag = tabPage;
-                    nodeCollection.Add(treeNode);
+            ExpandAll(treeView.Items.OfType<TreeViewItem>());
+        }
 
-                    foreach (Control control in tabPage.Controls)
+        private TreeViewItem CreateTreeNode(TabItem tabItem, TreeViewItem parent = null)
+        {
+            if (parent != null && string.IsNullOrEmpty(tabItem.Header?.ToString()))
+            {
+                parent.Tag = tabItem;
+                return null;
+            }
+
+            var node = new TreeViewItem
+            {
+                Header = tabItem.Header,
+                Tag = tabItem,
+                IsExpanded = true
+            };
+
+            // Check if tab contains a nested TabControl
+            if (tabItem.Content is TabControl nestedTabControl)
+            {
+                foreach (var nestedTabItem in nestedTabControl.Items.OfType<TabItem>())
+                {
+                    var childNode = CreateTreeNode(nestedTabItem, node);
+                    if (childNode != null)
                     {
-                        if (control is TabControl)
+                        node.Items.Add(childNode);
+                    }
+                }
+            }
+            else if (tabItem.Content is Avalonia.Controls.Control control)
+            {
+                // Look for TabControl in content
+                var nestedTab = FindChild<TabControl>(control);
+                if (nestedTab != null)
+                {
+                    foreach (var nestedTabItem in nestedTab.Items.OfType<TabItem>())
+                    {
+                        var childNode = CreateTreeNode(nestedTabItem, node);
+                        if (childNode != null)
                         {
-                            FillTreeView(treeNode.Nodes, control as TabControl, treeNode);
-                            break;
+                            node.Items.Add(childNode);
                         }
                     }
                 }
             }
+
+            return node;
         }
 
-        private void tvMain_BeforeCollapse(object sender, TreeViewCancelEventArgs e)
+        private static T FindChild<T>(Avalonia.Controls.Control parent) where T : Avalonia.Controls.Control
         {
-            e.Cancel = true;
-        }
+            if (parent is T typed)
+                return typed;
 
-        private void tvMain_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-            if (e.Node.Tag is TabPage tabPage)
+            if (parent is ContentControl cc && cc.Content is Avalonia.Controls.Control content)
             {
-                if (AutoSelectChild && tabPage.Controls.Count == 1 && tabPage.Controls[0] is TabControl)
+                var result = FindChild<T>(content);
+                if (result != null) return result;
+            }
+
+            if (parent is Panel panel)
+            {
+                foreach (var child in panel.Children.OfType<Avalonia.Controls.Control>())
+                {
+                    var result = FindChild<T>(child);
+                    if (result != null) return result;
+                }
+            }
+
+            return null;
+        }
+
+        private void ExpandAll(IEnumerable<TreeViewItem> items)
+        {
+            foreach (var item in items)
+            {
+                item.IsExpanded = true;
+                ExpandAll(item.Items.OfType<TreeViewItem>());
+            }
+        }
+
+        private void TreeView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (treeView.SelectedItem is TreeViewItem node && node.Tag is TabItem tabItem)
+            {
+                if (AutoSelectChild && tabItem.Content is TabControl)
                 {
                     SelectChildNode();
                 }
                 else
                 {
-                    SelectTabPage(tabPage);
+                    SelectTabItem(tabItem);
                 }
             }
         }
 
-        private void SelectTabPage(TabPage tabPage)
+        private void SelectTabItem(TabItem tabItem)
         {
-            if (tabPage != null)
+            if (tabItem != null)
             {
-                tcMain.Visible = true;
-                tcMain.TabPages.Clear();
-                tcMain.TabPages.Add(tabPage);
-                tvMain.Focus();
+                displayTabControl.IsVisible = true;
+                displayTabControl.Items.Clear();
+                
+                // Clone the tab item for display
+                var displayTab = new TabItem
+                {
+                    Header = tabItem.Header,
+                    Content = tabItem.Content
+                };
+                displayTabControl.Items.Add(displayTab);
+                displayTabControl.SelectedIndex = 0;
 
-                OnTabChanged(tabPage);
+                treeView.Focus();
+                TabChanged?.Invoke(tabItem);
             }
         }
 
-        public void NavigateToTabPage(TabPage tabPage)
+        public void NavigateToTabItem(TabItem tabItem)
         {
-            if (tabPage != null)
-            {
-                foreach (TreeNode node in tvMain.Nodes.All())
-                {
-                    TabPage nodeTabPage = node.Tag as TabPage;
+            if (tabItem == null) return;
 
-                    if (nodeTabPage == tabPage)
-                    {
-                        tvMain.SelectedNode = node;
-                        return;
-                    }
+            foreach (var node in GetAllNodes(treeView.Items.OfType<TreeViewItem>()))
+            {
+                if (node.Tag == tabItem)
+                {
+                    treeView.SelectedItem = node;
+                    return;
+                }
+            }
+        }
+
+        private IEnumerable<TreeViewItem> GetAllNodes(IEnumerable<TreeViewItem> items)
+        {
+            foreach (var item in items)
+            {
+                yield return item;
+                foreach (var child in GetAllNodes(item.Items.OfType<TreeViewItem>()))
+                {
+                    yield return child;
                 }
             }
         }
 
         public void SelectChildNode()
         {
-            TreeNode node = tvMain.SelectedNode;
-
-            if (node != null && node.Nodes.Count > 0)
+            if (treeView.SelectedItem is TreeViewItem node && node.Items.Count > 0)
             {
-                tvMain.SelectedNode = node.Nodes[0];
+                treeView.SelectedItem = node.Items.OfType<TreeViewItem>().FirstOrDefault();
             }
-        }
-
-        protected void OnTabChanged(TabPage tabPage)
-        {
-            TabChanged?.Invoke(tabPage);
-        }
-
-        protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
-        {
-            base.ScaleControl(factor, specified);
-            scMain.SplitterDistance = (int)Math.Round(scMain.SplitterDistance * factor.Width);
         }
     }
 }

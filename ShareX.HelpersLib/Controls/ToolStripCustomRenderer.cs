@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,37 +23,33 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia.Controls;
+using Avalonia.Media;
 
 namespace ShareX.HelpersLib
 {
+    /// <summary>
+    /// Custom toolbar/menu renderer configuration for Avalonia.
+    /// In Avalonia, actual rendering is done via styles - this provides configuration.
+    /// </summary>
     public class ToolStripCustomRenderer : ToolStripRoundedEdgeRenderer
     {
-        public ToolStripCustomRenderer()
+        public bool BoldCheckedItems { get; set; } = true;
+
+        public ToolStripCustomRenderer() : base()
         {
         }
 
-        public ToolStripCustomRenderer(ProfessionalColorTable professionalColorTable) : base(professionalColorTable)
+        public ToolStripCustomRenderer(ToolStripColorTable colorTable) : base(colorTable)
         {
         }
 
-        protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+        public void ApplyToMenuItem(MenuItem menuItem, bool isChecked)
         {
-            if (e.Item is ToolStripMenuItem tsmi && tsmi.Checked)
+            if (menuItem != null && BoldCheckedItems && isChecked)
             {
-                e.TextFont = new Font(tsmi.Font, FontStyle.Bold);
+                menuItem.FontWeight = FontWeight.Bold;
             }
-
-            base.OnRenderItemText(e);
-        }
-
-        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
-        {
-            if (e.Item is ToolStripDropDownButton tsddb && tsddb.Owner is ToolStripBorderRight)
-            {
-                e.Direction = ArrowDirection.Right;
-            }
-
-            base.OnRenderArrow(e);
         }
     }
 }

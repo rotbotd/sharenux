@@ -1,0 +1,59 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShareNux.Preview.HashCheckerWindow"
+        Title="Hash check"
+        Width="681" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen">
+    
+    <StackPanel Margin="16" Spacing="8">
+        
+        <!-- File path label -->
+        <TextBlock Text="File path:"/>
+        
+        <!-- File path input row -->
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBox Grid.Column="0" x:Name="txtFilePath" Margin="0,0,8,0"
+                     DragDrop.AllowDrop="True"/>
+            <Button Grid.Column="1" x:Name="btnFilePathBrowse" Content="Browse..." Width="80"/>
+        </Grid>
+        
+        <!-- Compare two files checkbox -->
+        <CheckBox x:Name="cbCompareTwoFiles" Content="Compare two files"/>
+        
+        <!-- File path 2 label -->
+        <TextBlock x:Name="lblFilePath2" Text="File path:"/>
+        
+        <!-- File path 2 input row (disabled when not comparing) -->
+        <Grid x:Name="gridFilePath2" ColumnDefinitions="*,Auto">
+            <TextBox Grid.Column="0" x:Name="txtFilePath2" Margin="0,0,8,0"
+                     DragDrop.AllowDrop="True"/>
+            <Button Grid.Column="1" x:Name="btnFilePathBrowse2" Content="Browse..." Width="80"/>
+        </Grid>
+        
+        <!-- Hash type row -->
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Hash type:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <ComboBox x:Name="cbHashType" Width="120"/>
+        </StackPanel>
+        
+        <!-- Check button + progress bar row -->
+        <Grid ColumnDefinitions="Auto,*">
+            <Button Grid.Column="0" x:Name="btnStartHashCheck" Content="Check" Width="80" Margin="0,0,8,0"/>
+            <ProgressBar Grid.Column="1" x:Name="pbProgress" Height="23" Minimum="0" Maximum="100"/>
+        </Grid>
+        
+        <!-- Result label -->
+        <TextBlock Text="Result:"/>
+        
+        <!-- Result textbox -->
+        <TextBox x:Name="txtResult" IsReadOnly="True"/>
+        
+        <!-- Target label -->
+        <TextBlock x:Name="lblTarget" Text="Target:"/>
+        
+        <!-- Target textbox -->
+        <TextBox x:Name="txtTarget"/>
+        
+    </StackPanel>
+</Window>

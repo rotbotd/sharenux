@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,106 +23,101 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
 using System;
 
 namespace ShareX.HelpersLib
 {
-    public partial class DoubleLabeledNumericUpDown : UserControl
+    public class DoubleLabeledNumericUpDown : UserControl
     {
+        private readonly TextBlock lblText;
+        private readonly NumericUpDown nudValue;
+        private readonly TextBlock lblText2;
+        private readonly NumericUpDown nudValue2;
+
         public new string Text
         {
-            get
-            {
-                return lblText.Text;
-            }
-            set
-            {
-                lblText.Text = value;
-            }
+            get => lblText.Text;
+            set => lblText.Text = value;
         }
 
         public string Text2
         {
-            get
-            {
-                return lblText2.Text;
-            }
-            set
-            {
-                lblText2.Text = value;
-            }
+            get => lblText2.Text;
+            set => lblText2.Text = value;
         }
 
         public decimal Value
         {
-            get
-            {
-                return nudValue.Value;
-            }
-            set
-            {
-                nudValue.SetValue(value);
-            }
+            get => nudValue.Value ?? 0;
+            set => nudValue.SetValue(value);
         }
 
         public decimal Value2
         {
-            get
-            {
-                return nudValue2.Value;
-            }
-            set
-            {
-                nudValue2.SetValue(value);
-            }
+            get => nudValue2.Value ?? 0;
+            set => nudValue2.SetValue(value);
         }
 
         public decimal Maximum
         {
-            get
-            {
-                return nudValue.Maximum;
-            }
+            get => nudValue.Maximum ?? decimal.MaxValue;
             set
             {
-                nudValue.Maximum = nudValue2.Maximum = value;
+                nudValue.Maximum = value;
+                nudValue2.Maximum = value;
             }
         }
 
         public decimal Minimum
         {
-            get
-            {
-                return nudValue.Minimum;
-            }
+            get => nudValue.Minimum ?? decimal.MinValue;
             set
             {
-                nudValue.Minimum = nudValue2.Minimum = value;
+                nudValue.Minimum = value;
+                nudValue2.Minimum = value;
             }
         }
 
         public decimal Increment
         {
-            get
-            {
-                return nudValue.Increment;
-            }
+            get => nudValue.Increment;
             set
             {
-                nudValue.Increment = nudValue2.Increment = value;
+                nudValue.Increment = value;
+                nudValue2.Increment = value;
             }
         }
 
-        public EventHandler ValueChanged;
+        public event EventHandler ValueChanged;
 
         public DoubleLabeledNumericUpDown()
         {
-            InitializeComponent();
+            lblText = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+            nudValue = new NumericUpDown { Width = 60, Minimum = 0, Maximum = 100 };
+            lblText2 = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+            nudValue2 = new NumericUpDown { Width = 60, Minimum = 0, Maximum = 100 };
+
             nudValue.ValueChanged += OnValueChanged;
             nudValue2.ValueChanged += OnValueChanged;
+
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 4
+            };
+
+            panel.Children.Add(lblText);
+            panel.Children.Add(nudValue);
+            panel.Children.Add(lblText2);
+            panel.Children.Add(nudValue2);
+
+            Content = panel;
         }
 
-        private void OnValueChanged(object sender, EventArgs e)
+        private void OnValueChanged(object sender, NumericUpDownValueChangedEventArgs e)
         {
             ValueChanged?.Invoke(sender, e);
         }

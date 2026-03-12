@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,93 +23,91 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia.Controls;
+using Avalonia.Layout;
 using System;
 
 namespace ShareX.HelpersLib
 {
-    public partial class LabeledNumericUpDown : UserControl
+    public class LabeledNumericUpDown : UserControl
     {
+        private readonly TextBlock lblText;
+        private readonly TextBlock lblText2;
+        private readonly NumericUpDown nudValue;
+
         public new string Text
         {
-            get
-            {
-                return lblText.Text;
-            }
-            set
-            {
-                lblText.Text = value;
-            }
+            get => lblText.Text;
+            set => lblText.Text = value;
         }
 
         public string Text2
         {
-            get
-            {
-                return lblText2.Text;
-            }
-            set
-            {
-                lblText2.Text = value;
-            }
+            get => lblText2.Text;
+            set => lblText2.Text = value;
         }
 
         public decimal Value
         {
-            get
-            {
-                return nudValue.Value;
-            }
-            set
-            {
-                nudValue.SetValue(value);
-            }
+            get => nudValue.Value ?? 0;
+            set => nudValue.SetValue(value);
         }
 
         public decimal Maximum
         {
-            get
-            {
-                return nudValue.Maximum;
-            }
-            set
-            {
-                nudValue.Maximum = value;
-            }
+            get => nudValue.Maximum ?? decimal.MaxValue;
+            set => nudValue.Maximum = value;
         }
 
         public decimal Minimum
         {
-            get
-            {
-                return nudValue.Minimum;
-            }
-            set
-            {
-                nudValue.Minimum = value;
-            }
+            get => nudValue.Minimum ?? decimal.MinValue;
+            set => nudValue.Minimum = value;
         }
 
         public decimal Increment
         {
-            get
-            {
-                return nudValue.Increment;
-            }
-            set
-            {
-                nudValue.Increment = value;
-            }
+            get => nudValue.Increment;
+            set => nudValue.Increment = value;
         }
 
-        public EventHandler ValueChanged;
+        public event EventHandler ValueChanged;
 
         public LabeledNumericUpDown()
         {
-            InitializeComponent();
+            lblText = new TextBlock
+            {
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            nudValue = new NumericUpDown
+            {
+                Width = 60,
+                Minimum = 0,
+                Maximum = 100
+            };
+
+            lblText2 = new TextBlock
+            {
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
             nudValue.ValueChanged += OnValueChanged;
+
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 4
+            };
+
+            panel.Children.Add(lblText);
+            panel.Children.Add(nudValue);
+            panel.Children.Add(lblText2);
+
+            Content = panel;
         }
 
-        private void OnValueChanged(object sender, EventArgs e)
+        private void OnValueChanged(object sender, NumericUpDownValueChangedEventArgs e)
         {
             ValueChanged?.Invoke(sender, e);
         }

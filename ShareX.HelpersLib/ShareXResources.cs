@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,8 +23,13 @@
 
 #endregion License Information (GPL v3)
 
-using ShareX.HelpersLib.Properties;
-using System.ComponentModel;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Styling;
+using SkiaSharp;
+using System;
+using System.IO;
 using System.Reflection;
 
 namespace ShareX.HelpersLib
@@ -33,284 +38,135 @@ namespace ShareX.HelpersLib
     {
         public static string Name { get; set; } = "ShareX";
 
-        public static string UserAgent
-        {
-            get
-            {
-                return $"{Name}/{Helpers.GetApplicationVersion()}";
-            }
-        }
+        public static string UserAgent => $"{Name}/{Helpers.GetApplicationVersion()}";
 
         public static bool IsDarkTheme => Theme.IsDarkTheme;
 
+        public static ShareXTheme Theme { get; set; } = ShareXTheme.DarkTheme;
+
+        private static SKBitmap logo;
+        
+        public static SKBitmap Logo
+        {
+            get
+            {
+                if (logo == null)
+                {
+                    logo = LoadEmbeddedBitmap("ShareX_Logo.png");
+                }
+                return logo?.Copy();
+            }
+            set
+            {
+                logo?.Dispose();
+                logo = value;
+            }
+        }
+
+        private static SKBitmap icon;
+        private static SKBitmap iconWhite;
         private static bool useWhiteIcon;
 
         public static bool UseWhiteIcon
         {
-            get
-            {
-                return useWhiteIcon;
-            }
+            get => useWhiteIcon;
             set
             {
                 if (useWhiteIcon != value)
                 {
                     useWhiteIcon = value;
-
-                    if (useWhiteIcon)
-                    {
-                        Icon = Resources.ShareX_Icon_White;
-                    }
-                    else
-                    {
-                        Icon = Resources.ShareX_Icon;
-                    }
                 }
             }
         }
 
-        private static Icon icon = Resources.ShareX_Icon;
-
-        public static Icon Icon
+        public static SKBitmap Icon
         {
             get
             {
-                return icon.CloneSafe();
-            }
-            set
-            {
-                if (icon != value)
+                if (useWhiteIcon)
                 {
-                    icon?.Dispose();
-                    icon = value;
+                    iconWhite ??= LoadEmbeddedBitmap("ShareX_Icon_White.png");
+                    return iconWhite?.Copy();
+                }
+                else
+                {
+                    icon ??= LoadEmbeddedBitmap("ShareX_Icon.png");
+                    return icon?.Copy();
                 }
             }
         }
 
-        private static Bitmap logo = Resources.ShareX_Logo;
-
-        public static Bitmap Logo
+        private static SKBitmap LoadEmbeddedBitmap(string resourceName)
         {
-            get
+            var assembly = Assembly.GetExecutingAssembly();
+            var fullName = $"ShareX.HelpersLib.Resources.{resourceName}";
+            
+            using var stream = assembly.GetManifestResourceStream(fullName);
+            if (stream != null)
             {
-                return logo.CloneSafe();
+                return SKBitmap.Decode(stream);
             }
-            set
+            
+            // Try without namespace prefix
+            foreach (var name in assembly.GetManifestResourceNames())
             {
-                if (logo != value)
+                if (name.EndsWith(resourceName))
                 {
-                    logo?.Dispose();
-                    logo = value;
+                    using var s = assembly.GetManifestResourceStream(name);
+                    if (s != null)
+                    {
+                        return SKBitmap.Decode(s);
+                    }
                 }
             }
+            
+            return null;
         }
 
-        public static ShareXTheme Theme { get; set; } = ShareXTheme.DarkTheme;
-
-        public static void ApplyTheme(Form form, bool closeOnEscape = false, bool setIcon = true)
+        public static void ApplyTheme(Window window, bool closeOnEscape = false)
         {
             if (closeOnEscape)
             {
-                form.CloseOnEscape();
+                window.CloseOnEscape();
             }
 
-            if (setIcon)
+            // Apply dark/light theme variant
+            if (Application.Current != null)
             {
-                form.Icon = Icon;
+                Application.Current.RequestedThemeVariant = 
+                    Theme.IsDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
             }
 
-            ApplyCustomThemeToControl(form);
+            // Set window background
+            window.Background = new SolidColorBrush(Theme.GetAvaloniaBackgroundColor());
+        }
 
-            IContainer components = form.GetType().GetField("components", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(form) as IContainer;
-            ApplyCustomThemeToComponents(components);
-
-            if (form.IsHandleCreated)
+        public static void ApplyThemeToControl(Avalonia.Controls.Control control)
+        {
+            // Avalonia handles most theming through styles and theme variants
+            // This method is here for compatibility but most work is done via XAML styles
+            
+            if (control is Window window)
             {
-                NativeMethods.UseImmersiveDarkMode(form.Handle, Theme.IsDarkTheme);
-            }
-            else
-            {
-                form.HandleCreated += (s, e) => NativeMethods.UseImmersiveDarkMode(form.Handle, Theme.IsDarkTheme);
+                window.Background = new SolidColorBrush(Theme.GetAvaloniaBackgroundColor());
             }
         }
 
-        public static void ApplyCustomThemeToControl(Control control)
+        public static Avalonia.Media.Color GetThemeColor(string colorName)
         {
-            if (control.ContextMenuStrip != null)
+            return colorName switch
             {
-                ApplyCustomThemeToContextMenuStrip(control.ContextMenuStrip);
-            }
-
-            if (control is MenuButton mb && mb.Menu != null)
-            {
-                ApplyCustomThemeToContextMenuStrip(mb.Menu);
-            }
-
-            switch (control)
-            {
-                case ColorButton colorButton:
-                    colorButton.FlatStyle = FlatStyle.Flat;
-                    colorButton.FlatAppearance.BorderColor = Theme.BorderColor;
-                    colorButton.ForeColor = Theme.TextColor;
-                    colorButton.BackColor = Theme.LightBackgroundColor;
-                    colorButton.BorderColor = Theme.BorderColor;
-                    return;
-                case Button btn:
-                    btn.FlatStyle = FlatStyle.Flat;
-                    btn.FlatAppearance.BorderColor = Theme.BorderColor;
-                    btn.ForeColor = Theme.TextColor;
-                    btn.BackColor = Theme.LightBackgroundColor;
-                    return;
-                case CheckBox cb when cb.Appearance == Appearance.Button:
-                    cb.FlatStyle = FlatStyle.Flat;
-                    cb.FlatAppearance.BorderColor = Theme.BorderColor;
-                    cb.ForeColor = Theme.TextColor;
-                    cb.BackColor = Theme.LightBackgroundColor;
-                    return;
-                case TextBox tb:
-                    tb.ForeColor = Theme.TextColor;
-                    tb.BackColor = Theme.LightBackgroundColor;
-                    tb.BorderStyle = BorderStyle.FixedSingle;
-                    return;
-                case ComboBox cb:
-                    cb.FlatStyle = FlatStyle.Flat;
-                    cb.ForeColor = Theme.TextColor;
-                    cb.BackColor = Theme.LightBackgroundColor;
-                    return;
-                case ListBox lb:
-                    lb.ForeColor = Theme.TextColor;
-                    lb.BackColor = Theme.LightBackgroundColor;
-                    return;
-                case ListView lv:
-                    lv.ForeColor = Theme.TextColor;
-                    lv.BackColor = Theme.LightBackgroundColor;
-                    lv.SupportCustomTheme();
-                    return;
-                case SplitContainerCustomSplitter sccs:
-                    sccs.SplitterColor = Theme.BackgroundColor;
-                    sccs.SplitterLineColor = Theme.BorderColor;
-                    sccs.Panel1.BackColor = Theme.BackgroundColor;
-                    sccs.Panel2.BackColor = Theme.BackgroundColor;
-                    break;
-                case SplitContainer sc:
-                    sc.Panel1.BackColor = Theme.BackgroundColor;
-                    sc.Panel2.BackColor = Theme.BackgroundColor;
-                    break;
-                case PropertyGrid pg:
-                    pg.CategoryForeColor = Theme.TextColor;
-                    pg.CategorySplitterColor = Theme.BackgroundColor;
-                    pg.LineColor = Theme.BackgroundColor;
-                    pg.SelectedItemWithFocusForeColor = Theme.BackgroundColor;
-                    pg.SelectedItemWithFocusBackColor = Theme.TextColor;
-                    pg.ViewForeColor = Theme.TextColor;
-                    pg.ViewBackColor = Theme.LightBackgroundColor;
-                    pg.ViewBorderColor = Theme.BorderColor;
-                    pg.HelpForeColor = Theme.TextColor;
-                    pg.HelpBackColor = Theme.BackgroundColor;
-                    pg.HelpBorderColor = Theme.BorderColor;
-                    return;
-                case DataGridView dgv:
-                    dgv.BackgroundColor = Theme.LightBackgroundColor;
-                    dgv.GridColor = Theme.BorderColor;
-                    dgv.DefaultCellStyle.BackColor = Theme.LightBackgroundColor;
-                    dgv.DefaultCellStyle.SelectionBackColor = Theme.LightBackgroundColor;
-                    dgv.DefaultCellStyle.ForeColor = Theme.TextColor;
-                    dgv.DefaultCellStyle.SelectionForeColor = Theme.TextColor;
-                    dgv.ColumnHeadersDefaultCellStyle.BackColor = Theme.BackgroundColor;
-                    dgv.ColumnHeadersDefaultCellStyle.SelectionBackColor = Theme.BackgroundColor;
-                    dgv.ColumnHeadersDefaultCellStyle.ForeColor = Theme.TextColor;
-                    dgv.ColumnHeadersDefaultCellStyle.SelectionForeColor = Theme.TextColor;
-                    dgv.EnableHeadersVisualStyles = false;
-                    break;
-                case ContextMenuStrip cms:
-                    ApplyCustomThemeToContextMenuStrip(cms);
-                    return;
-                case ToolStrip ts:
-                    ts.Font = Theme.MenuFont;
-                    ts.Renderer = new ToolStripDarkRenderer();
-                    ApplyCustomThemeToToolStripItemCollection(ts.Items);
-                    return;
-                case LinkLabel ll:
-                    ll.LinkColor = Theme.LinkColor;
-                    break;
-            }
-
-            control.ForeColor = Theme.TextColor;
-            control.BackColor = Theme.BackgroundColor;
-
-            foreach (Control child in control.Controls)
-            {
-                ApplyCustomThemeToControl(child);
-            }
-
-            switch (control)
-            {
-                case TabToTreeView tttv:
-                    tttv.LeftPanelBackColor = Theme.DarkBackgroundColor;
-                    tttv.SeparatorColor = Theme.SeparatorDarkColor;
-                    break;
-            }
+                "Background" => Theme.GetAvaloniaBackgroundColor(),
+                "Text" => Theme.GetAvaloniaTextColor(),
+                "Border" => Theme.GetAvaloniaBorderColor(),
+                "Link" => Theme.GetAvaloniaLinkColor(),
+                _ => Theme.GetAvaloniaTextColor()
+            };
         }
 
-        private static void ApplyCustomThemeToComponents(IContainer container)
+        public static IBrush GetThemeBrush(string colorName)
         {
-            if (container != null)
-            {
-                foreach (IComponent component in container.Components)
-                {
-                    switch (component)
-                    {
-                        case ContextMenuStrip cms:
-                            ApplyCustomThemeToContextMenuStrip(cms);
-                            break;
-                        case ToolTip tt:
-                            tt.ForeColor = Theme.TextColor;
-                            tt.BackColor = Theme.BackgroundColor;
-                            tt.OwnerDraw = true;
-                            tt.Draw -= ToolTip_Draw;
-                            tt.Draw += ToolTip_Draw;
-                            break;
-                    }
-                }
-            }
-        }
-
-        private static void ToolTip_Draw(object sender, DrawToolTipEventArgs e)
-        {
-            e.DrawBackground();
-            e.DrawBorder();
-            e.DrawText(TextFormatFlags.VerticalCenter | TextFormatFlags.LeftAndRightPadding);
-        }
-
-        public static void ApplyCustomThemeToContextMenuStrip(ContextMenuStrip cms)
-        {
-            if (cms != null)
-            {
-                cms.Renderer = new ToolStripDarkRenderer();
-                cms.Font = Theme.ContextMenuFont;
-                cms.Opacity = Theme.ContextMenuOpacityDouble;
-                ApplyCustomThemeToToolStripItemCollection(cms.Items);
-            }
-        }
-
-        private static void ApplyCustomThemeToToolStripItemCollection(ToolStripItemCollection collection)
-        {
-            foreach (ToolStripItem tsi in collection)
-            {
-                switch (tsi)
-                {
-                    case ToolStripControlHost tsch:
-                        ApplyCustomThemeToControl(tsch.Control);
-                        break;
-                    case ToolStripDropDownItem tsddi:
-                        if (tsddi.DropDown != null)
-                        {
-                            tsddi.DropDown.Opacity = Theme.ContextMenuOpacityDouble;
-                            ApplyCustomThemeToToolStripItemCollection(tsddi.DropDownItems);
-                        }
-                        break;
-                }
-            }
+            return new SolidColorBrush(GetThemeColor(colorName));
         }
     }
 }

@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShareX.HelpersLib.PrintWindow"
+        Title="ShareX - Print options"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen">
+    
+    <StackPanel Margin="16,16,16,8">
+        <!-- Margin label + numeric -->
+        <TextBlock x:Name="lblMargin" Text="Margin:"/>
+        <NumericUpDown x:Name="nudMargin" Width="80" Minimum="0" Maximum="1000" Value="10" 
+                       HorizontalAlignment="Left" Margin="0,4,0,12"/>
+        
+        <!-- Checkboxes -->
+        <CheckBox x:Name="cbAutoRotate" Content="Auto rotate image" Margin="0,0,0,6"/>
+        <CheckBox x:Name="cbAutoScale" Content="Auto scale image" Margin="0,0,0,6"/>
+        <CheckBox x:Name="cbAllowEnlarge" Content="Allow image to enlarge" Margin="24,0,0,6"/>
+        <CheckBox x:Name="cbCenterImage" Content="Center image position" Margin="24,0,0,12"/>
+        
+        <!-- Buttons -->
+        <Button x:Name="btnShowPreview" Content="Preview..." Width="112" Height="23" HorizontalAlignment="Left" Margin="0,0,0,6"/>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button x:Name="btnPrint" Content="Print..." Width="112" Height="23"/>
+            <Button x:Name="btnCancel" Content="Cancel" Width="112" Height="23"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

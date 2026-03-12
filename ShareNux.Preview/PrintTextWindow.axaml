@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShareNux.Preview.PrintTextWindow"
+        Title="ShareX - Print options"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen">
+    
+    <StackPanel Margin="8" Spacing="8">
+        <!-- Font label -->
+        <TextBlock x:Name="lblFont" Text="Font:"/>
+        
+        <!-- Change font button -->
+        <Button x:Name="btnChangeFont" Content="Change font..." Width="152" Height="23" HorizontalAlignment="Left"/>
+        
+        <!-- Bottom buttons -->
+        <StackPanel Orientation="Horizontal" Spacing="5">
+            <Button x:Name="btnPrint" Content="Print..." Width="75" Height="23"/>
+            <Button x:Name="btnShowPreview" Content="Preview..." Width="75" Height="23"/>
+            <Button x:Name="btnCancel" Content="Cancel" Width="75" Height="23"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

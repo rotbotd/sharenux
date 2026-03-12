@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,24 +23,93 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
 
 namespace ShareX.HelpersLib
 {
-    [ToolStripItemDesignerAvailability(ToolStripItemDesignerAvailability.MenuStrip | ToolStripItemDesignerAvailability.ContextMenuStrip)]
-    public class ToolStripDoubleLabeledNumericUpDown : ToolStripControlHost
+    // Avalonia replacement for WinForms ToolStripControlHost<DoubleLabeledNumericUpDown>
+    // A StackPanel containing two labels and two NumericUpDowns
+    public class ToolStripDoubleLabeledNumericUpDown : StackPanel
     {
-        public DoubleLabeledNumericUpDown Content
+        private readonly TextBlock label1;
+        private readonly NumericUpDown numericUpDown1;
+        private readonly TextBlock label2;
+        private readonly NumericUpDown numericUpDown2;
+
+        public DoubleLabeledNumericUpDown Content => new DoubleLabeledNumericUpDown 
+        { 
+            Text = Text, 
+            Text2 = Text2,
+            Value = Value,
+            Value2 = Value2
+        };
+
+        public string Text
         {
-            get
-            {
-                return Control as DoubleLabeledNumericUpDown;
-            }
+            get => label1.Text;
+            set => label1.Text = value;
         }
 
-        public ToolStripDoubleLabeledNumericUpDown(string text, string text2) : base(new DoubleLabeledNumericUpDown())
+        public string Text2
         {
-            Content.Text = text;
-            Content.Text2 = text2;
+            get => label2.Text;
+            set => label2.Text = value;
+        }
+
+        public decimal? Value
+        {
+            get => numericUpDown1.Value;
+            set => numericUpDown1.Value = value;
+        }
+
+        public decimal? Value2
+        {
+            get => numericUpDown2.Value;
+            set => numericUpDown2.Value = value;
+        }
+
+        public ToolStripDoubleLabeledNumericUpDown() : this(string.Empty, string.Empty) { }
+
+        public ToolStripDoubleLabeledNumericUpDown(string text, string text2)
+        {
+            Orientation = Orientation.Horizontal;
+            Spacing = 4;
+            VerticalAlignment = VerticalAlignment.Center;
+
+            label1 = new TextBlock
+            {
+                Text = text,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            numericUpDown1 = new NumericUpDown
+            {
+                Width = 60,
+                Minimum = 0,
+                Maximum = 100,
+                Increment = 1
+            };
+
+            label2 = new TextBlock
+            {
+                Text = text2,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            numericUpDown2 = new NumericUpDown
+            {
+                Width = 60,
+                Minimum = 0,
+                Maximum = 100,
+                Increment = 1
+            };
+
+            Children.Add(label1);
+            Children.Add(numericUpDown1);
+            Children.Add(label2);
+            Children.Add(numericUpDown2);
         }
     }
 }

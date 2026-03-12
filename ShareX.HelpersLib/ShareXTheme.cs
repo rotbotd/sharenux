@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,6 +23,8 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia.Media;
+using SkiaSharp;
 using System.Collections.Generic;
 using System.ComponentModel;
 
@@ -32,121 +34,103 @@ namespace ShareX.HelpersLib
     {
         public string Name { get; set; }
 
-        private Color backgroundColor;
+        private SKColor backgroundColor;
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color BackgroundColor
+        public SKColor BackgroundColor
         {
-            get
-            {
-                return backgroundColor;
-            }
+            get => backgroundColor;
             set
             {
-                if (!value.IsTransparent()) backgroundColor = value;
+                if (value.Alpha > 0) backgroundColor = value;
             }
         }
 
-        private Color lightBackgroundColor;
+        private SKColor lightBackgroundColor;
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color LightBackgroundColor
+        public SKColor LightBackgroundColor
         {
-            get
-            {
-                return lightBackgroundColor;
-            }
+            get => lightBackgroundColor;
             set
             {
-                if (!value.IsTransparent()) lightBackgroundColor = value;
+                if (value.Alpha > 0) lightBackgroundColor = value;
             }
         }
 
-        private Color darkBackgroundColor;
+        private SKColor darkBackgroundColor;
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color DarkBackgroundColor
+        public SKColor DarkBackgroundColor
         {
-            get
-            {
-                return darkBackgroundColor;
-            }
+            get => darkBackgroundColor;
             set
             {
-                if (!value.IsTransparent()) darkBackgroundColor = value;
+                if (value.Alpha > 0) darkBackgroundColor = value;
             }
         }
 
-        private Color textColor;
+        private SKColor textColor;
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color TextColor
+        public SKColor TextColor
         {
-            get
-            {
-                return textColor;
-            }
+            get => textColor;
             set
             {
-                if (!value.IsTransparent()) textColor = value;
+                if (value.Alpha > 0) textColor = value;
             }
         }
 
-        private Color borderColor;
+        private SKColor borderColor;
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color BorderColor
+        public SKColor BorderColor
         {
-            get
-            {
-                return borderColor;
-            }
+            get => borderColor;
             set
             {
-                if (!value.IsTransparent()) borderColor = value;
+                if (value.Alpha > 0) borderColor = value;
             }
         }
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color CheckerColor { get; set; }
+        public SKColor CheckerColor { get; set; }
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color CheckerColor2 { get; set; }
+        public SKColor CheckerColor2 { get; set; }
 
         public int CheckerSize { get; set; } = 15;
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color LinkColor { get; set; }
+        public SKColor LinkColor { get; set; }
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color MenuHighlightColor { get; set; }
+        public SKColor MenuHighlightColor { get; set; }
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color MenuHighlightBorderColor { get; set; }
+        public SKColor MenuHighlightBorderColor { get; set; }
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color MenuBorderColor { get; set; }
+        public SKColor MenuBorderColor { get; set; }
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color MenuCheckBackgroundColor { get; set; }
+        public SKColor MenuCheckBackgroundColor { get; set; }
 
-        public Font MenuFont { get; set; } = new Font("Segoe UI", 9.75f);
+        public string MenuFontFamily { get; set; } = "Segoe UI";
+        public float MenuFontSize { get; set; } = 9.75f;
 
-        public Font ContextMenuFont { get; set; } = new Font("Segoe UI", 9.75f);
+        public string ContextMenuFontFamily { get; set; } = "Segoe UI";
+        public float ContextMenuFontSize { get; set; } = 9.75f;
 
         public int ContextMenuOpacity { get; set; } = 100;
 
         [Browsable(false)]
-        public double ContextMenuOpacityDouble => ContextMenuOpacity.Clamp(10, 100) / 100d;
+        public double ContextMenuOpacityDouble => System.Math.Clamp(ContextMenuOpacity, 10, 100) / 100d;
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color SeparatorLightColor { get; set; }
+        public SKColor SeparatorLightColor { get; set; }
 
-        [Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color SeparatorDarkColor { get; set; }
+        public SKColor SeparatorDarkColor { get; set; }
 
         [Browsable(false)]
         public bool IsDarkTheme => ColorHelpers.IsDarkColor(BackgroundColor);
+
+        // Avalonia color conversions
+        public Avalonia.Media.Color GetAvaloniaBackgroundColor() => ToAvaloniaColor(BackgroundColor);
+        public Avalonia.Media.Color GetAvaloniaTextColor() => ToAvaloniaColor(TextColor);
+        public Avalonia.Media.Color GetAvaloniaBorderColor() => ToAvaloniaColor(BorderColor);
+        public Avalonia.Media.Color GetAvaloniaLinkColor() => ToAvaloniaColor(LinkColor);
+
+        private static Avalonia.Media.Color ToAvaloniaColor(SKColor c) => 
+            Avalonia.Media.Color.FromArgb(c.Alpha, c.Red, c.Green, c.Blue);
 
         private ShareXTheme()
         {
@@ -155,118 +139,118 @@ namespace ShareX.HelpersLib
         public static ShareXTheme DarkTheme => new ShareXTheme()
         {
             Name = "Dark",
-            BackgroundColor = Color.FromArgb(39, 39, 39),
-            LightBackgroundColor = Color.FromArgb(46, 46, 46),
-            DarkBackgroundColor = Color.FromArgb(34, 34, 34),
-            TextColor = Color.FromArgb(231, 233, 234),
-            BorderColor = Color.FromArgb(31, 31, 31),
-            CheckerColor = Color.FromArgb(46, 46, 46),
-            CheckerColor2 = Color.FromArgb(39, 39, 39),
-            LinkColor = Color.FromArgb(166, 212, 255),
-            MenuHighlightColor = Color.FromArgb(46, 46, 46),
-            MenuHighlightBorderColor = Color.FromArgb(63, 63, 63),
-            MenuBorderColor = Color.FromArgb(63, 63, 63),
-            MenuCheckBackgroundColor = Color.FromArgb(51, 51, 51),
-            SeparatorLightColor = Color.FromArgb(44, 44, 44),
-            SeparatorDarkColor = Color.FromArgb(31, 31, 31)
+            BackgroundColor = new SKColor(39, 39, 39),
+            LightBackgroundColor = new SKColor(46, 46, 46),
+            DarkBackgroundColor = new SKColor(34, 34, 34),
+            TextColor = new SKColor(231, 233, 234),
+            BorderColor = new SKColor(31, 31, 31),
+            CheckerColor = new SKColor(46, 46, 46),
+            CheckerColor2 = new SKColor(39, 39, 39),
+            LinkColor = new SKColor(166, 212, 255),
+            MenuHighlightColor = new SKColor(46, 46, 46),
+            MenuHighlightBorderColor = new SKColor(63, 63, 63),
+            MenuBorderColor = new SKColor(63, 63, 63),
+            MenuCheckBackgroundColor = new SKColor(51, 51, 51),
+            SeparatorLightColor = new SKColor(44, 44, 44),
+            SeparatorDarkColor = new SKColor(31, 31, 31)
         };
 
         public static ShareXTheme LightTheme => new ShareXTheme()
         {
             Name = "Light",
-            BackgroundColor = Color.FromArgb(242, 242, 242),
-            LightBackgroundColor = Color.FromArgb(247, 247, 247),
-            DarkBackgroundColor = Color.FromArgb(235, 235, 235),
-            TextColor = Color.FromArgb(69, 69, 69),
-            BorderColor = Color.FromArgb(201, 201, 201),
-            CheckerColor = Color.FromArgb(247, 247, 247),
-            CheckerColor2 = Color.FromArgb(235, 235, 235),
-            LinkColor = Color.FromArgb(166, 212, 255),
-            MenuHighlightColor = Color.FromArgb(247, 247, 247),
-            MenuHighlightBorderColor = Color.FromArgb(96, 143, 226),
-            MenuBorderColor = Color.FromArgb(201, 201, 201),
-            MenuCheckBackgroundColor = Color.FromArgb(225, 233, 244),
-            SeparatorLightColor = Color.FromArgb(253, 253, 253),
-            SeparatorDarkColor = Color.FromArgb(189, 189, 189)
+            BackgroundColor = new SKColor(242, 242, 242),
+            LightBackgroundColor = new SKColor(247, 247, 247),
+            DarkBackgroundColor = new SKColor(235, 235, 235),
+            TextColor = new SKColor(69, 69, 69),
+            BorderColor = new SKColor(201, 201, 201),
+            CheckerColor = new SKColor(247, 247, 247),
+            CheckerColor2 = new SKColor(235, 235, 235),
+            LinkColor = new SKColor(166, 212, 255),
+            MenuHighlightColor = new SKColor(247, 247, 247),
+            MenuHighlightBorderColor = new SKColor(96, 143, 226),
+            MenuBorderColor = new SKColor(201, 201, 201),
+            MenuCheckBackgroundColor = new SKColor(225, 233, 244),
+            SeparatorLightColor = new SKColor(253, 253, 253),
+            SeparatorDarkColor = new SKColor(189, 189, 189)
         };
 
         public static ShareXTheme NightTheme => new ShareXTheme()
         {
             Name = "Night",
-            BackgroundColor = Color.FromArgb(42, 47, 56),
-            LightBackgroundColor = Color.FromArgb(52, 57, 65),
-            DarkBackgroundColor = Color.FromArgb(28, 32, 38),
-            TextColor = Color.FromArgb(235, 235, 235),
-            BorderColor = Color.FromArgb(28, 32, 38),
-            CheckerColor = Color.FromArgb(60, 60, 60),
-            CheckerColor2 = Color.FromArgb(50, 50, 50),
-            LinkColor = Color.FromArgb(166, 212, 255),
-            MenuHighlightColor = Color.FromArgb(30, 34, 40),
-            MenuHighlightBorderColor = Color.FromArgb(116, 129, 152),
-            MenuBorderColor = Color.FromArgb(22, 26, 31),
-            MenuCheckBackgroundColor = Color.FromArgb(56, 64, 75),
-            SeparatorLightColor = Color.FromArgb(56, 64, 75),
-            SeparatorDarkColor = Color.FromArgb(22, 26, 31)
+            BackgroundColor = new SKColor(42, 47, 56),
+            LightBackgroundColor = new SKColor(52, 57, 65),
+            DarkBackgroundColor = new SKColor(28, 32, 38),
+            TextColor = new SKColor(235, 235, 235),
+            BorderColor = new SKColor(28, 32, 38),
+            CheckerColor = new SKColor(60, 60, 60),
+            CheckerColor2 = new SKColor(50, 50, 50),
+            LinkColor = new SKColor(166, 212, 255),
+            MenuHighlightColor = new SKColor(30, 34, 40),
+            MenuHighlightBorderColor = new SKColor(116, 129, 152),
+            MenuBorderColor = new SKColor(22, 26, 31),
+            MenuCheckBackgroundColor = new SKColor(56, 64, 75),
+            SeparatorLightColor = new SKColor(56, 64, 75),
+            SeparatorDarkColor = new SKColor(22, 26, 31)
         };
 
         // https://www.nordtheme.com
         public static ShareXTheme NordDarkTheme => new ShareXTheme()
         {
             Name = "Nord Dark",
-            BackgroundColor = Color.FromArgb(46, 52, 64),
-            LightBackgroundColor = Color.FromArgb(59, 66, 82),
-            DarkBackgroundColor = Color.FromArgb(38, 44, 57),
-            TextColor = Color.FromArgb(229, 233, 240),
-            BorderColor = Color.FromArgb(30, 38, 54),
-            CheckerColor = Color.FromArgb(46, 52, 64),
-            CheckerColor2 = Color.FromArgb(36, 42, 54),
-            LinkColor = Color.FromArgb(136, 192, 208),
-            MenuHighlightColor = Color.FromArgb(36, 42, 54),
-            MenuHighlightBorderColor = Color.FromArgb(24, 30, 42),
-            MenuBorderColor = Color.FromArgb(24, 30, 42),
-            MenuCheckBackgroundColor = Color.FromArgb(59, 66, 82),
-            SeparatorLightColor = Color.FromArgb(59, 66, 82),
-            SeparatorDarkColor = Color.FromArgb(30, 38, 54)
+            BackgroundColor = new SKColor(46, 52, 64),
+            LightBackgroundColor = new SKColor(59, 66, 82),
+            DarkBackgroundColor = new SKColor(38, 44, 57),
+            TextColor = new SKColor(229, 233, 240),
+            BorderColor = new SKColor(30, 38, 54),
+            CheckerColor = new SKColor(46, 52, 64),
+            CheckerColor2 = new SKColor(36, 42, 54),
+            LinkColor = new SKColor(136, 192, 208),
+            MenuHighlightColor = new SKColor(36, 42, 54),
+            MenuHighlightBorderColor = new SKColor(24, 30, 42),
+            MenuBorderColor = new SKColor(24, 30, 42),
+            MenuCheckBackgroundColor = new SKColor(59, 66, 82),
+            SeparatorLightColor = new SKColor(59, 66, 82),
+            SeparatorDarkColor = new SKColor(30, 38, 54)
         };
 
         // https://www.nordtheme.com
         public static ShareXTheme NordLightTheme => new ShareXTheme()
         {
             Name = "Nord Light",
-            BackgroundColor = Color.FromArgb(229, 233, 240),
-            LightBackgroundColor = Color.FromArgb(236, 239, 244),
-            DarkBackgroundColor = Color.FromArgb(216, 222, 233),
-            TextColor = Color.FromArgb(59, 66, 82),
-            BorderColor = Color.FromArgb(207, 216, 233),
-            CheckerColor = Color.FromArgb(229, 233, 240),
-            CheckerColor2 = Color.FromArgb(216, 222, 233),
-            LinkColor = Color.FromArgb(106, 162, 178),
-            MenuHighlightColor = Color.FromArgb(236, 239, 244),
-            MenuHighlightBorderColor = Color.FromArgb(207, 216, 233),
-            MenuBorderColor = Color.FromArgb(216, 222, 233),
-            MenuCheckBackgroundColor = Color.FromArgb(229, 233, 240),
-            SeparatorLightColor = Color.FromArgb(236, 239, 244),
-            SeparatorDarkColor = Color.FromArgb(207, 216, 233)
+            BackgroundColor = new SKColor(229, 233, 240),
+            LightBackgroundColor = new SKColor(236, 239, 244),
+            DarkBackgroundColor = new SKColor(216, 222, 233),
+            TextColor = new SKColor(59, 66, 82),
+            BorderColor = new SKColor(207, 216, 233),
+            CheckerColor = new SKColor(229, 233, 240),
+            CheckerColor2 = new SKColor(216, 222, 233),
+            LinkColor = new SKColor(106, 162, 178),
+            MenuHighlightColor = new SKColor(236, 239, 244),
+            MenuHighlightBorderColor = new SKColor(207, 216, 233),
+            MenuBorderColor = new SKColor(216, 222, 233),
+            MenuCheckBackgroundColor = new SKColor(229, 233, 240),
+            SeparatorLightColor = new SKColor(236, 239, 244),
+            SeparatorDarkColor = new SKColor(207, 216, 233)
         };
 
         // https://draculatheme.com
         public static ShareXTheme DraculaTheme => new ShareXTheme()
         {
             Name = "Dracula",
-            BackgroundColor = Color.FromArgb(40, 42, 54),
-            LightBackgroundColor = Color.FromArgb(68, 71, 90),
-            DarkBackgroundColor = Color.FromArgb(36, 38, 48),
-            TextColor = Color.FromArgb(248, 248, 242),
-            BorderColor = Color.FromArgb(33, 35, 43),
-            CheckerColor = Color.FromArgb(40, 42, 54),
-            CheckerColor2 = Color.FromArgb(36, 38, 48),
-            LinkColor = Color.FromArgb(98, 114, 164),
-            MenuHighlightColor = Color.FromArgb(36, 38, 48),
-            MenuHighlightBorderColor = Color.FromArgb(255, 121, 198),
-            MenuBorderColor = Color.FromArgb(33, 35, 43),
-            MenuCheckBackgroundColor = Color.FromArgb(45, 47, 61),
-            SeparatorLightColor = Color.FromArgb(45, 47, 61),
-            SeparatorDarkColor = Color.FromArgb(33, 35, 43)
+            BackgroundColor = new SKColor(40, 42, 54),
+            LightBackgroundColor = new SKColor(68, 71, 90),
+            DarkBackgroundColor = new SKColor(36, 38, 48),
+            TextColor = new SKColor(248, 248, 242),
+            BorderColor = new SKColor(33, 35, 43),
+            CheckerColor = new SKColor(40, 42, 54),
+            CheckerColor2 = new SKColor(36, 38, 48),
+            LinkColor = new SKColor(98, 114, 164),
+            MenuHighlightColor = new SKColor(36, 38, 48),
+            MenuHighlightBorderColor = new SKColor(255, 121, 198),
+            MenuBorderColor = new SKColor(33, 35, 43),
+            MenuCheckBackgroundColor = new SKColor(45, 47, 61),
+            SeparatorLightColor = new SKColor(45, 47, 61),
+            SeparatorDarkColor = new SKColor(33, 35, 43)
         };
 
         public static List<ShareXTheme> GetDefaultThemes()

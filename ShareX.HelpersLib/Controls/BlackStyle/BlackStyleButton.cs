@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,126 +23,65 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
 using System;
-using System.ComponentModel;
 
 namespace ShareX.HelpersLib
 {
-    [DefaultEvent("MouseClick")]
-    public class BlackStyleButton : Control
+    public class BlackStyleButton : Avalonia.Controls.Button
     {
-        [Editor("System.ComponentModel.Design.MultilineStringEditor, System.Design, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", typeof(UITypeEditor))]
-        public override string Text
-        {
-            get
-            {
-                return text;
-            }
-            set
-            {
-                if (value == null)
-                {
-                    value = "";
-                }
-
-                if (text != value)
-                {
-                    text = value;
-
-                    Invalidate();
-                }
-            }
-        }
-
-        private string text;
         private bool isHover;
-        private LinearGradientBrush backgroundBrush, backgroundHoverBrush, innerBorderBrush;
-        private Pen innerBorderPen, borderPen;
+
+        private static readonly IBrush BackgroundNormal = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops =
+            {
+                new GradientStop(Color.FromRgb(105, 105, 105), 0),
+                new GradientStop(Color.FromRgb(65, 65, 65), 1)
+            }
+        };
+
+        private static readonly IBrush BackgroundHover = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops =
+            {
+                new GradientStop(Color.FromRgb(115, 115, 115), 0),
+                new GradientStop(Color.FromRgb(75, 75, 75), 1)
+            }
+        };
+
+        private static readonly IBrush BorderBrush = new SolidColorBrush(Color.FromRgb(30, 30, 30));
 
         public BlackStyleButton()
         {
-            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
-            ForeColor = Color.White;
-            Font = new Font("Arial", 12);
-            borderPen = new Pen(Color.FromArgb(30, 30, 30));
-            Prepare();
+            Foreground = Brushes.White;
+            FontFamily = new FontFamily("Arial");
+            FontSize = 12;
+            BorderBrush = BlackStyleButton.BorderBrush;
+            BorderThickness = new Thickness(1);
+            Padding = new Thickness(8, 4);
+            Background = BackgroundNormal;
         }
 
-        private void Prepare()
+        protected override void OnPointerEntered(PointerEventArgs e)
         {
-            backgroundBrush = new LinearGradientBrush(new Rectangle(2, 2, ClientSize.Width - 4, ClientSize.Height - 4), Color.FromArgb(105, 105, 105), Color.FromArgb(65, 65, 65), LinearGradientMode.Vertical);
-            backgroundHoverBrush = new LinearGradientBrush(new Rectangle(2, 2, ClientSize.Width - 4, ClientSize.Height - 4), Color.FromArgb(115, 115, 115), Color.FromArgb(75, 75, 75), LinearGradientMode.Vertical);
-            innerBorderBrush = new LinearGradientBrush(new Rectangle(1, 1, ClientSize.Width - 2, ClientSize.Height - 2), Color.FromArgb(125, 125, 125), Color.FromArgb(75, 75, 75), LinearGradientMode.Vertical);
-            innerBorderPen = new Pen(innerBorderBrush);
-        }
-
-        protected override void OnPaint(PaintEventArgs pe)
-        {
-            base.OnPaint(pe);
-
-            Graphics g = pe.Graphics;
-
-            DrawBackground(g);
-
-            if (!string.IsNullOrEmpty(Text))
-            {
-                DrawText(g);
-            }
-        }
-
-        protected override void OnMouseEnter(EventArgs e)
-        {
-            base.OnMouseEnter(e);
-
+            base.OnPointerEntered(e);
             isHover = true;
-            Invalidate();
+            Background = BackgroundHover;
         }
 
-        protected override void OnMouseLeave(EventArgs e)
+        protected override void OnPointerExited(PointerEventArgs e)
         {
-            base.OnMouseLeave(e);
-
+            base.OnPointerExited(e);
             isHover = false;
-            Invalidate();
-        }
-
-        protected override void OnResize(EventArgs e)
-        {
-            base.OnResize(e);
-
-            Prepare();
-        }
-
-        private void DrawBackground(Graphics g)
-        {
-            if (isHover)
-            {
-                g.FillRectangle(backgroundHoverBrush, new Rectangle(2, 2, ClientSize.Width - 4, ClientSize.Height - 4));
-            }
-            else
-            {
-                g.FillRectangle(backgroundBrush, new Rectangle(2, 2, ClientSize.Width - 4, ClientSize.Height - 4));
-            }
-
-            g.DrawRectangle(innerBorderPen, new Rectangle(1, 1, ClientSize.Width - 3, ClientSize.Height - 3));
-            g.DrawRectangle(borderPen, new Rectangle(0, 0, ClientSize.Width - 1, ClientSize.Height - 1));
-        }
-
-        private void DrawText(Graphics g)
-        {
-            TextRenderer.DrawText(g, Text, Font, new Rectangle(ClientRectangle.X, ClientRectangle.Y + 1, ClientRectangle.Width, ClientRectangle.Height), Color.Black);
-            TextRenderer.DrawText(g, Text, Font, ClientRectangle, ForeColor);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (backgroundBrush != null) backgroundBrush.Dispose();
-            if (backgroundHoverBrush != null) backgroundHoverBrush.Dispose();
-            if (innerBorderBrush != null) innerBorderBrush.Dispose();
-            if (innerBorderPen != null) innerBorderPen.Dispose();
-            if (borderPen != null) borderPen.Dispose();
-
-            base.Dispose(disposing);
+            Background = BackgroundNormal;
         }
     }
 }
