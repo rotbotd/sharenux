@@ -20,7 +20,7 @@ class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new ColorPickerWindow();
+            desktop.MainWindow = new GradientPickerWindow();
         }
         base.OnFrameworkInitializationCompleted();
     }
