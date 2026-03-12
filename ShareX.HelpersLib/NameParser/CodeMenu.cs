@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,119 +23,110 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
 using ShareX.HelpersLib.Properties;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace ShareX.HelpersLib
 {
-    public class CodeMenu : ContextMenuStrip
+    public class CodeMenu : ContextMenu
     {
-        public Point MenuLocation
-        {
-            get
-            {
-                if (MenuLocationBottom)
-                {
-                    return new Point(MenuLocationOffset.X, textBoxBase.Height + MenuLocationOffset.Y + 1);
-                }
-
-                return new Point(textBoxBase.Width + MenuLocationOffset.X + 1, MenuLocationOffset.Y);
-            }
-        }
-
         public Point MenuLocationOffset { get; set; }
-
         public bool MenuLocationBottom { get; set; }
 
-        private TextBoxBase textBoxBase;
+        private TextBox textBox;
 
-        public CodeMenu(TextBoxBase tbb, CodeMenuItem[] items)
+        public CodeMenu(TextBox tb, CodeMenuItem[] items)
         {
-            textBoxBase = tbb;
+            textBox = tb;
 
-            Font = new Font("Lucida Console", 8);
-            AutoClose = textBoxBase == null;
-            ShowImageMargin = false;
+            FontFamily = new FontFamily("Lucida Console");
+            FontSize = 11;
 
             foreach (CodeMenuItem item in items)
             {
-                ToolStripMenuItem tsmi = new ToolStripMenuItem { Text = $"{item.Name} - {item.Description}", Tag = item.Name };
+                var menuItem = new MenuItem 
+                { 
+                    Header = $"{item.Name} - {item.Description}",
+                    Tag = item.Name 
+                };
 
-                tsmi.MouseUp += (sender, e) =>
+                menuItem.Click += (sender, e) =>
                 {
-                    if (textBoxBase != null && e.Button == MouseButtons.Left)
+                    if (textBox != null && sender is MenuItem mi)
                     {
-                        string text = ((ToolStripMenuItem)sender).Tag.ToString();
-                        textBoxBase.AppendTextToSelection(text);
-                    }
-                    else
-                    {
-                        Close();
+                        string text = mi.Tag?.ToString() ?? "";
+                        textBox.AppendTextToSelection(text);
                     }
                 };
 
                 if (string.IsNullOrWhiteSpace(item.Category))
                 {
-                    Items.Add(tsmi);
+                    Items.Add(menuItem);
                 }
                 else
                 {
-                    ToolStripMenuItem tsmiParent;
-                    int index = Items.IndexOfKey(item.Category);
-                    if (index < 0)
+                    MenuItem parentItem = null;
+                    foreach (var existing in Items.OfType<MenuItem>())
                     {
-                        tsmiParent = new ToolStripMenuItem { Text = item.Category, Tag = item.Category, Name = item.Category };
-                        tsmiParent.HideImageMargin();
-                        Items.Add(tsmiParent);
+                        if (existing.Tag?.ToString() == item.Category)
+                        {
+                            parentItem = existing;
+                            break;
+                        }
                     }
-                    else
+
+                    if (parentItem == null)
                     {
-                        tsmiParent = Items[index] as ToolStripMenuItem;
+                        parentItem = new MenuItem 
+                        { 
+                            Header = item.Category, 
+                            Tag = item.Category 
+                        };
+                        Items.Add(parentItem);
                     }
-                    tsmiParent.DropDownItems.Add(tsmi);
+
+                    parentItem.Items.Add(menuItem);
                 }
             }
 
-            Items.Add(new ToolStripSeparator());
+            Items.Add(new Separator());
 
-            ToolStripMenuItem tsmiClose = new ToolStripMenuItem(Resources.CodeMenu_Create_Close);
-            tsmiClose.Click += (sender, e) => Close();
-            Items.Add(tsmiClose);
+            var closeItem = new MenuItem { Header = Resources.CodeMenu_Create_Close };
+            closeItem.Click += (sender, e) => Close();
+            Items.Add(closeItem);
 
-            ShareXResources.ApplyCustomThemeToContextMenuStrip(this);
-
-            if (textBoxBase != null)
+            if (textBox != null)
             {
-                textBoxBase.MouseDown += (sender, e) =>
+                textBox.GotFocus += (sender, e) =>
                 {
-                    if (Items.Count > 0) Show(textBoxBase, MenuLocation);
-                };
-
-                textBoxBase.GotFocus += (sender, e) =>
-                {
-                    if (Items.Count > 0) Show(textBoxBase, MenuLocation);
-                };
-
-                textBoxBase.LostFocus += (sender, e) =>
-                {
-                    if (Visible) Close();
-                };
-
-                textBoxBase.KeyDown += (sender, e) =>
-                {
-                    if ((e.KeyCode == Keys.Enter || e.KeyCode == Keys.Escape) && Visible)
+                    if (Items.Count > 0)
                     {
-                        Close();
-                        e.SuppressKeyPress = true;
+                        Open(textBox);
                     }
                 };
 
-                textBoxBase.Disposed += (sender, e) => Dispose();
+                textBox.LostFocus += (sender, e) =>
+                {
+                    Close();
+                };
+
+                textBox.KeyDown += (sender, e) =>
+                {
+                    if (e.Key == Key.Enter || e.Key == Key.Escape)
+                    {
+                        Close();
+                        e.Handled = true;
+                    }
+                };
             }
         }
 
-        public static CodeMenu Create<TEntry>(TextBoxBase tb, TEntry[] ignoreList, CodeMenuItem[] extraItems) where TEntry : CodeMenuEntry
+        public static CodeMenu Create<TEntry>(TextBox tb, TEntry[] ignoreList, CodeMenuItem[] extraItems) where TEntry : CodeMenuEntry
         {
             List<CodeMenuItem> items = new List<CodeMenuItem>();
 
@@ -152,7 +143,7 @@ namespace ShareX.HelpersLib
             return new CodeMenu(tb, items.ToArray());
         }
 
-        public static CodeMenu Create<TEntry>(TextBoxBase tb, params TEntry[] ignoreList) where TEntry : CodeMenuEntry
+        public static CodeMenu Create<TEntry>(TextBox tb, params TEntry[] ignoreList) where TEntry : CodeMenuEntry
         {
             return Create(tb, ignoreList, (CodeMenuItem[])null);
         }

@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,27 +23,27 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia.Controls;
+using Avalonia.Media;
 
 namespace ShareX.HelpersLib
 {
+    /// <summary>
+    /// Dark theme toolbar/menu renderer configuration for Avalonia.
+    /// </summary>
     public class ToolStripDarkRenderer : ToolStripCustomRenderer
     {
         public ToolStripDarkRenderer() : base(new DarkColorTable())
         {
         }
 
-        protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+        public new void ApplyToMenu(Menu menu)
         {
-            e.TextColor = ShareXResources.Theme.TextColor;
-
-            base.OnRenderItemText(e);
-        }
-
-        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
-        {
-            e.ArrowColor = ShareXResources.Theme.TextColor;
-
-            base.OnRenderArrow(e);
+            if (menu != null)
+            {
+                menu.Background = new SolidColorBrush(ColorTable.MenuStripGradientBegin.ToAvaloniaColor());
+                menu.Foreground = new SolidColorBrush(ShareXResources.Theme.TextColor.ToAvaloniaColor());
+            }
         }
     }
 }

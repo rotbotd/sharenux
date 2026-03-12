@@ -51,56 +51,49 @@ namespace ShareX.HelpersLib
         public bool DisableDeselect { get; set; }
         public bool FullRowSelect { get; set; } = true;
 
-        private readonly DataGrid dataGrid;
+        private readonly ListBox listBox;
         private readonly ObservableCollection<MyListViewItem> items;
 
         public IList<MyListViewItem> Items => items;
-        public IList<MyListViewItem> SelectedItems => dataGrid.SelectedItems.Cast<MyListViewItem>().ToList();
+        public IList<MyListViewItem> SelectedItems => listBox.SelectedItems.Cast<MyListViewItem>().ToList();
         public IList<int> SelectedIndices => SelectedItems.Select(i => items.IndexOf(i)).ToList();
 
         public int SelectedIndex
         {
-            get => dataGrid.SelectedIndex;
+            get => listBox.SelectedIndex;
             set
             {
                 UnselectAll();
                 if (value >= 0 && value < items.Count)
                 {
-                    dataGrid.SelectedIndex = value;
-                    dataGrid.ScrollIntoView(items[value], null);
+                    listBox.SelectedIndex = value;
+                    listBox.ScrollIntoView(items[value]);
                 }
             }
         }
-
-        public DataGridColumnCollection Columns => dataGrid.Columns;
 
         public MyListView()
         {
             items = new ObservableCollection<MyListViewItem>();
             
-            dataGrid = new DataGrid
+            listBox = new ListBox
             {
-                AutoGenerateColumns = false,
-                CanUserReorderColumns = false,
-                CanUserResizeColumns = true,
-                CanUserSortColumns = true,
-                SelectionMode = DataGridSelectionMode.Extended,
-                GridLinesVisibility = DataGridGridLinesVisibility.None,
+                SelectionMode = SelectionMode.Multiple,
                 ItemsSource = items
             };
 
-            dataGrid.SelectionChanged += DataGrid_SelectionChanged;
-            dataGrid.KeyDown += DataGrid_KeyDown;
+            listBox.SelectionChanged += ListBox_SelectionChanged;
+            listBox.KeyDown += ListBox_KeyDown;
 
-            Content = dataGrid;
+            Content = listBox;
         }
 
-        private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // Handle selection changes
         }
 
-        private void DataGrid_KeyDown(object sender, KeyEventArgs e)
+        private void ListBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.A && e.KeyModifiers.HasFlag(KeyModifiers.Control))
             {
@@ -130,7 +123,7 @@ namespace ShareX.HelpersLib
             UnselectAll();
             if (item != null)
             {
-                dataGrid.SelectedItem = item;
+                listBox.SelectedItem = item;
             }
         }
 
@@ -138,20 +131,20 @@ namespace ShareX.HelpersLib
         {
             if (AllowSelectAll)
             {
-                dataGrid.SelectAll();
+                listBox.SelectAll();
             }
         }
 
         public void UnselectAll()
         {
-            dataGrid.SelectedItems.Clear();
+            listBox.SelectedItems.Clear();
         }
 
         public void EnsureSelectedVisible()
         {
             if (SelectedItems.Count > 0)
             {
-                dataGrid.ScrollIntoView(SelectedItems[0], null);
+                listBox.ScrollIntoView(SelectedItems[0]);
             }
         }
 
@@ -236,5 +229,7 @@ namespace ShareX.HelpersLib
                 }
             }
         }
+
+        public override string ToString() => Text;
     }
 }

@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,53 +23,37 @@
 
 #endregion License Information (GPL v3)
 
+using SkiaSharp;
 using System;
-using System.ComponentModel;
+using System.Threading.Tasks;
 
 namespace ShareX.HelpersLib
 {
-    public class MyColorEditor : UITypeEditor
+    /// <summary>
+    /// Color editor for property editing. In Avalonia, this is used as a marker
+    /// and the actual editing is handled by custom property grid implementations.
+    /// </summary>
+    public class MyColorEditor
     {
-        public override UITypeEditorEditStyle GetEditStyle(ITypeDescriptorContext context)
+        public static SKColor? ShowColorPicker(SKColor currentColor)
         {
-            return UITypeEditorEditStyle.Modal;
-        }
-
-        public override object EditValue(ITypeDescriptorContext context, IServiceProvider provider, object value)
-        {
-            if (value.GetType() != typeof(Color))
+            var form = new ColorPickerForm(currentColor);
+            if (form.ShowDialog() == DialogResult.OK)
             {
-                return value;
+                return form.NewColor;
             }
+            return null;
+        }
 
-            IWindowsFormsEditorService svc = (IWindowsFormsEditorService)provider.GetService(typeof(IWindowsFormsEditorService));
-
-            if (svc != null)
+        public static async Task<SKColor?> ShowColorPickerAsync(SKColor currentColor)
+        {
+            var form = new ColorPickerForm(currentColor);
+            var result = await form.ShowDialogAsync();
+            if (result == DialogResult.OK)
             {
-                Color color = (Color)value;
-
-                using (ColorPickerForm form = new ColorPickerForm(color))
-                {
-                    if (svc.ShowDialog(form) == DialogResult.OK)
-                    {
-                        return (Color)form.NewColor;
-                    }
-                }
+                return form.NewColor;
             }
-
-            return value;
-        }
-
-        public override bool GetPaintValueSupported(ITypeDescriptorContext context)
-        {
-            return true;
-        }
-
-        public override void PaintValue(PaintValueEventArgs e)
-        {
-            Graphics g = e.Graphics;
-            Color color = (Color)e.Value;
-            ImageHelpers.DrawColorPickerIcon(g, color, e.Bounds);
+            return null;
         }
     }
 }

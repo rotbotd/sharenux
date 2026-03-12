@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,36 +23,42 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Threading;
+using SkiaSharp;
 using System;
 
 namespace ShareX.HelpersLib
 {
-    public class Canvas : UserControl
+    public class Canvas : Avalonia.Controls.Control
     {
-        public delegate void DrawEventHandler(Graphics g);
+        public delegate void DrawEventHandler(SKCanvas canvas, SKImageInfo info);
 
         public event DrawEventHandler Draw;
 
-        public int Interval { get; set; }
+        public int Interval { get; set; } = 100;
 
-        private Timer timer;
+        private DispatcherTimer timer;
         private bool needPaint;
 
         public Canvas()
         {
-            Interval = 100;
-            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+            ClipToBounds = true;
         }
 
         public void Start()
         {
-            if (timer == null || !timer.Enabled)
+            if (timer == null || !timer.IsEnabled)
             {
                 Stop();
 
-                timer = new Timer();
-                timer.Interval = Interval;
-                timer.Tick += timer_Tick;
+                timer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(Interval)
+                };
+                timer.Tick += Timer_Tick;
                 timer.Start();
             }
         }
@@ -68,34 +74,50 @@ namespace ShareX.HelpersLib
             if (timer != null)
             {
                 timer.Stop();
-                timer.Dispose();
+                timer = null;
             }
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            Stop();
-            base.Dispose(disposing);
-        }
-
-        private void timer_Tick(object sender, EventArgs e)
+        private void Timer_Tick(object sender, EventArgs e)
         {
             needPaint = true;
-            Invalidate();
+            InvalidateVisual();
         }
 
-        protected override void OnPaint(PaintEventArgs e)
+        public override void Render(DrawingContext context)
         {
-            if (needPaint)
+            base.Render(context);
+
+            if (!needPaint)
+                return;
+
+            int width = (int)Bounds.Width;
+            int height = (int)Bounds.Height;
+
+            if (width <= 0 || height <= 0)
+                return;
+
+            var info = new SKImageInfo(width, height);
+            using var surface = SKSurface.Create(info);
+
+            if (surface != null)
             {
-                OnDraw(e.Graphics);
-                needPaint = false;
-            }
-        }
+                var canvas = surface.Canvas;
+                canvas.Clear(SKColors.Transparent);
 
-        protected void OnDraw(Graphics g)
-        {
-            Draw?.Invoke(g);
+                Draw?.Invoke(canvas, info);
+
+                using var image = surface.Snapshot();
+                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+                using var stream = new System.IO.MemoryStream();
+                data.SaveTo(stream);
+                stream.Position = 0;
+
+                var bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+                context.DrawImage(bitmap, new Rect(0, 0, width, height));
+            }
+
+            needPaint = false;
         }
     }
 }

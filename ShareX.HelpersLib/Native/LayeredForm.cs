@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,73 +23,73 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using SkiaSharp;
 using System;
+using System.IO;
 
 namespace ShareX.HelpersLib
 {
-    public class LayeredForm : Form
+    /// <summary>
+    /// A window that displays a semi-transparent bitmap overlay.
+    /// In Avalonia, this is achieved using transparent windows with image content.
+    /// </summary>
+    public class LayeredForm : Window
     {
+        private Avalonia.Controls.Image imageControl;
+
         public LayeredForm()
         {
-            SuspendLayout();
-            AutoScaleDimensions = new SizeF(6F, 13F);
-            AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(300, 300);
-            FormBorderStyle = FormBorderStyle.None;
-            Icon = ShareXResources.Icon;
-            Name = "LayeredForm";
+            Width = 300;
+            Height = 300;
+            SystemDecorations = SystemDecorations.None;
             ShowInTaskbar = false;
-            Text = "LayeredForm";
-            ResumeLayout(false);
+            Background = Brushes.Transparent;
+            TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent };
+            
+            imageControl = new Avalonia.Controls.Image
+            {
+                Stretch = Stretch.None
+            };
+            Content = imageControl;
         }
 
-        protected override CreateParams CreateParams
+        public void SelectBitmap(SKBitmap bitmap, int opacity = 255)
         {
-            get
+            if (bitmap == null)
+                return;
+
+            // Apply opacity to bitmap if needed
+            SKBitmap displayBitmap = bitmap;
+            if (opacity < 255)
             {
-                CreateParams createParams = base.CreateParams;
-                createParams.ExStyle |= (int)WindowStyles.WS_EX_LAYERED;
-                return createParams;
-            }
-        }
-
-        public void SelectBitmap(Bitmap bitmap, int opacity = 255)
-        {
-            if (bitmap.PixelFormat != PixelFormat.Format32bppArgb)
-            {
-                throw new ApplicationException("The bitmap must be 32bpp with alpha-channel.");
-            }
-
-            IntPtr screenDc = NativeMethods.GetDC(IntPtr.Zero);
-            IntPtr memDc = NativeMethods.CreateCompatibleDC(screenDc);
-            IntPtr hBitmap = IntPtr.Zero;
-            IntPtr hOldBitmap = IntPtr.Zero;
-
-            try
-            {
-                hBitmap = bitmap.GetHbitmap(Color.FromArgb(0));
-                hOldBitmap = NativeMethods.SelectObject(memDc, hBitmap);
-
-                SIZE newSize = new SIZE(bitmap.Width, bitmap.Height);
-                POINT sourceLocation = new POINT(0, 0);
-                POINT newLocation = new POINT(Left, Top);
-                BLENDFUNCTION blend = new BLENDFUNCTION();
-                blend.BlendOp = NativeConstants.AC_SRC_OVER;
-                blend.BlendFlags = 0;
-                blend.SourceConstantAlpha = (byte)opacity;
-                blend.AlphaFormat = NativeConstants.AC_SRC_ALPHA;
-
-                NativeMethods.UpdateLayeredWindow(Handle, screenDc, ref newLocation, ref newSize, memDc, ref sourceLocation, 0, ref blend, NativeConstants.ULW_ALPHA);
-            }
-            finally
-            {
-                NativeMethods.ReleaseDC(IntPtr.Zero, screenDc);
-                if (hBitmap != IntPtr.Zero)
+                displayBitmap = new SKBitmap(bitmap.Width, bitmap.Height);
+                using (var canvas = new SKCanvas(displayBitmap))
+                using (var paint = new SKPaint())
                 {
-                    NativeMethods.SelectObject(memDc, hOldBitmap);
-                    NativeMethods.DeleteObject(hBitmap);
+                    paint.Color = paint.Color.WithAlpha((byte)opacity);
+                    canvas.DrawBitmap(bitmap, 0, 0, paint);
                 }
-                NativeMethods.DeleteDC(memDc);
+            }
+
+            // Convert to Avalonia bitmap
+            using var data = displayBitmap.Encode(SKEncodedImageFormat.Png, 100);
+            using var stream = new MemoryStream();
+            data.SaveTo(stream);
+            stream.Position = 0;
+            
+            var avaloniaBitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+            imageControl.Source = avaloniaBitmap;
+
+            Width = bitmap.Width;
+            Height = bitmap.Height;
+
+            if (opacity < 255 && displayBitmap != bitmap)
+            {
+                displayBitmap.Dispose();
             }
         }
     }

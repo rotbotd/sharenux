@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,65 +23,102 @@
 
 #endregion License Information (GPL v3)
 
-using System.ComponentModel;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
+using System;
 
 namespace ShareX.HelpersLib
 {
+    /// <summary>
+    /// A button that shows a dropdown menu when clicked.
+    /// </summary>
     public class MenuButton : Button
     {
-        [DefaultValue(null)]
-        public ContextMenuStrip Menu { get; set; }
+        public static readonly StyledProperty<ContextMenu> MenuProperty =
+            AvaloniaProperty.Register<MenuButton, ContextMenu>(nameof(Menu));
 
-        [DefaultValue(false)]
-        public bool ShowMenuUnderCursor { get; set; }
+        public static readonly StyledProperty<bool> ShowMenuUnderCursorProperty =
+            AvaloniaProperty.Register<MenuButton, bool>(nameof(ShowMenuUnderCursor), false);
+
+        public ContextMenu Menu
+        {
+            get => GetValue(MenuProperty);
+            set => SetValue(MenuProperty, value);
+        }
+
+        public bool ShowMenuUnderCursor
+        {
+            get => GetValue(ShowMenuUnderCursorProperty);
+            set => SetValue(ShowMenuUnderCursorProperty, value);
+        }
+
+        public MenuButton()
+        {
+            // Add dropdown arrow indicator
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 5
+            };
+
+            var contentPresenter = new ContentPresenter();
+            contentPresenter.Bind(ContentPresenter.ContentProperty, this.GetObservable(ContentProperty));
+            panel.Children.Add(contentPresenter);
+
+            var arrow = new TextBlock
+            {
+                Text = "▼",
+                FontSize = 8,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            panel.Children.Add(arrow);
+        }
 
         public void OpenMenu()
         {
             if (Menu != null)
             {
-                OpenMenu(new Point(0, Height));
+                Menu.Open(this);
             }
         }
 
-        public void OpenMenu(Point menuPosition)
+        public void OpenMenu(Point position)
         {
             if (Menu != null)
             {
-                Menu.Show(this, menuPosition);
+                Menu.Open(this);
             }
         }
 
-        protected override void OnMouseDown(MouseEventArgs mevent)
+        protected override void OnClick()
         {
-            base.OnMouseDown(mevent);
+            base.OnClick();
 
-            if (Menu != null && mevent.Button == MouseButtons.Left)
+            if (Menu != null)
+            {
+                OpenMenu();
+            }
+        }
+
+        protected override void OnPointerPressed(PointerPressedEventArgs e)
+        {
+            base.OnPointerPressed(e);
+
+            var point = e.GetCurrentPoint(this);
+            if (Menu != null && point.Properties.IsLeftButtonPressed)
             {
                 if (ShowMenuUnderCursor)
                 {
-                    OpenMenu(mevent.Location);
+                    OpenMenu(e.GetPosition(this));
                 }
                 else
                 {
                     OpenMenu();
-                }
-            }
-        }
-
-        protected override void OnPaint(PaintEventArgs pevent)
-        {
-            base.OnPaint(pevent);
-
-            if (Menu != null)
-            {
-                int arrowX = ClientRectangle.Width - Padding.Right - 14;
-                int arrowY = (ClientRectangle.Height / 2) - 1;
-
-                Color color = Enabled ? ForeColor : SystemColors.ControlDark;
-                using (Brush brush = new SolidBrush(color))
-                {
-                    Point[] arrows = new Point[] { new Point(arrowX, arrowY), new Point(arrowX + 7, arrowY), new Point(arrowX + 3, arrowY + 4) };
-                    pevent.Graphics.FillPolygon(brush, arrows);
                 }
             }
         }

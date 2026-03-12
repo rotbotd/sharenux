@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,33 +23,45 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Media;
 using System;
-using System.ComponentModel;
 
 namespace ShareX.HelpersLib
 {
+    /// <summary>
+    /// A button that allows the user to select a hotkey by pressing keys.
+    /// </summary>
     public class HotkeySelectionButton : Button
     {
         public event EventHandler HotkeyChanged;
 
-        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public HotkeyInfo HotkeyInfo { get; set; } = new HotkeyInfo();
+        public static readonly StyledProperty<HotkeyInfo> HotkeyInfoProperty =
+            AvaloniaProperty.Register<HotkeySelectionButton, HotkeyInfo>(nameof(HotkeyInfo));
 
-        [Browsable(false)]
+        public HotkeyInfo HotkeyInfo
+        {
+            get => GetValue(HotkeyInfoProperty) ?? new HotkeyInfo();
+            set => SetValue(HotkeyInfoProperty, value);
+        }
+
         public bool EditingHotkey { get; private set; }
 
-        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public override string Text { get; set; }
+        private IBrush originalBackground;
 
         public HotkeySelectionButton()
         {
+            HotkeyInfo = new HotkeyInfo();
             SetDefaultButtonText();
+            Focusable = true;
         }
 
         private void SetDefaultButtonText()
         {
-            Text = "Select a hotkey...";
-            Invalidate();
+            Content = "Select a hotkey...";
         }
 
         public void Reset()
@@ -63,11 +75,11 @@ namespace ShareX.HelpersLib
         {
             EditingHotkey = true;
 
-            BackColor = Color.FromArgb(225, 255, 225);
+            originalBackground = Background;
+            Background = new SolidColorBrush(Color.FromRgb(225, 255, 225));
             SetDefaultButtonText();
 
-            HotkeyInfo.Hotkey = Keys.None;
-            HotkeyInfo.Win = false;
+            HotkeyInfo = new HotkeyInfo { Hotkey = Key.None, Win = false };
 
             OnHotkeyChanged();
         }
@@ -78,11 +90,10 @@ namespace ShareX.HelpersLib
 
             if (HotkeyInfo.IsOnlyModifiers)
             {
-                HotkeyInfo.Hotkey = Keys.None;
+                HotkeyInfo = new HotkeyInfo { Hotkey = Key.None };
             }
 
-            BackColor = SystemColors.Control;
-            UseVisualStyleBackColor = true;
+            Background = originalBackground;
 
             OnHotkeyChanged();
             UpdateHotkeyText();
@@ -96,11 +107,10 @@ namespace ShareX.HelpersLib
 
         private void UpdateHotkeyText()
         {
-            Text = HotkeyInfo.ToString();
-            Invalidate();
+            Content = HotkeyInfo.ToString();
         }
 
-        protected override void OnMouseClick(MouseEventArgs e)
+        protected override void OnClick()
         {
             if (EditingHotkey)
             {
@@ -111,81 +121,135 @@ namespace ShareX.HelpersLib
                 StartEditing();
             }
 
-            base.OnMouseClick(e);
+            base.OnClick();
         }
 
-        protected override void OnLeave(EventArgs e)
+        protected override void OnLostFocus(RoutedEventArgs e)
         {
             if (EditingHotkey)
             {
                 StopEditing();
             }
 
-            base.OnLeave(e);
+            base.OnLostFocus(e);
         }
 
-        protected override void OnPreviewKeyDown(PreviewKeyDownEventArgs e)
+        protected override void OnKeyDown(KeyEventArgs e)
         {
             if (EditingHotkey)
             {
-                // For handle Tab key etc.
-                e.IsInputKey = true;
-            }
+                e.Handled = true;
 
-            base.OnPreviewKeyDown(e);
-        }
-
-        protected override void OnKeyDown(KeyEventArgs kevent)
-        {
-            kevent.SuppressKeyPress = true;
-
-            if (EditingHotkey)
-            {
-                if (kevent.KeyData == Keys.Escape)
+                if (e.Key == Key.Escape)
                 {
-                    HotkeyInfo.Hotkey = Keys.None;
+                    HotkeyInfo = new HotkeyInfo { Hotkey = Key.None };
                     StopEditing();
                 }
-                else if (kevent.KeyCode == Keys.LWin || kevent.KeyCode == Keys.RWin)
+                else if (e.Key == Key.LWin || e.Key == Key.RWin)
                 {
-                    HotkeyInfo.Win = !HotkeyInfo.Win;
+                    var newInfo = new HotkeyInfo
+                    {
+                        Hotkey = HotkeyInfo.Hotkey,
+                        Win = !HotkeyInfo.Win,
+                        Control = HotkeyInfo.Control,
+                        Shift = HotkeyInfo.Shift,
+                        Alt = HotkeyInfo.Alt
+                    };
+                    HotkeyInfo = newInfo;
                     UpdateHotkeyText();
-                }
-                else if (new HotkeyInfo(kevent.KeyData).IsValidHotkey)
-                {
-                    HotkeyInfo.Hotkey = kevent.KeyData;
-                    StopEditing();
                 }
                 else
                 {
-                    HotkeyInfo.Hotkey = kevent.KeyData;
-                    UpdateHotkeyText();
+                    var newInfo = new HotkeyInfo
+                    {
+                        Hotkey = e.Key,
+                        Win = HotkeyInfo.Win,
+                        Control = e.KeyModifiers.HasFlag(KeyModifiers.Control),
+                        Shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift),
+                        Alt = e.KeyModifiers.HasFlag(KeyModifiers.Alt)
+                    };
+
+                    if (newInfo.IsValidHotkey)
+                    {
+                        HotkeyInfo = newInfo;
+                        StopEditing();
+                    }
+                    else
+                    {
+                        HotkeyInfo = newInfo;
+                        UpdateHotkeyText();
+                    }
                 }
             }
 
-            base.OnKeyDown(kevent);
+            base.OnKeyDown(e);
         }
 
-        protected override void OnKeyUp(KeyEventArgs kevent)
+        protected override void OnKeyUp(KeyEventArgs e)
         {
-            kevent.SuppressKeyPress = true;
-
             if (EditingHotkey)
             {
-                // PrintScreen not trigger KeyDown event
-                if (kevent.KeyCode == Keys.PrintScreen)
+                e.Handled = true;
+
+                // PrintScreen doesn't trigger KeyDown on some platforms
+                if (e.Key == Key.PrintScreen || e.Key == Key.Snapshot)
                 {
-                    HotkeyInfo.Hotkey = kevent.KeyData;
+                    var newInfo = new HotkeyInfo
+                    {
+                        Hotkey = e.Key,
+                        Win = HotkeyInfo.Win,
+                        Control = e.KeyModifiers.HasFlag(KeyModifiers.Control),
+                        Shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift),
+                        Alt = e.KeyModifiers.HasFlag(KeyModifiers.Alt)
+                    };
+                    HotkeyInfo = newInfo;
                     StopEditing();
                 }
             }
 
-            base.OnKeyUp(kevent);
+            base.OnKeyUp(e);
         }
 
         protected void OnHotkeyChanged()
         {
             HotkeyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Represents a hotkey combination.
+    /// </summary>
+    public class HotkeyInfo
+    {
+        public Key Hotkey { get; set; } = Key.None;
+        public bool Win { get; set; }
+        public bool Control { get; set; }
+        public bool Shift { get; set; }
+        public bool Alt { get; set; }
+
+        public bool IsOnlyModifiers => Hotkey == Key.None || Hotkey == Key.LeftCtrl || Hotkey == Key.RightCtrl ||
+                                        Hotkey == Key.LeftShift || Hotkey == Key.RightShift ||
+                                        Hotkey == Key.LeftAlt || Hotkey == Key.RightAlt ||
+                                        Hotkey == Key.LWin || Hotkey == Key.RWin;
+
+        public bool IsValidHotkey => Hotkey != Key.None && !IsOnlyModifiers;
+
+        public override string ToString()
+        {
+            if (Hotkey == Key.None && !Win && !Control && !Shift && !Alt)
+                return "None";
+
+            var parts = new System.Collections.Generic.List<string>();
+
+            if (Win) parts.Add("Win");
+            if (Control) parts.Add("Ctrl");
+            if (Shift) parts.Add("Shift");
+            if (Alt) parts.Add("Alt");
+
+            if (Hotkey != Key.None && !IsOnlyModifiers)
+                parts.Add(Hotkey.ToString());
+
+            return string.Join(" + ", parts);
         }
     }
 }

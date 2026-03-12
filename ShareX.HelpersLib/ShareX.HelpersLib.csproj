@@ -8,7 +8,6 @@
   <!-- Exclude WinForms designer files from compilation (keep for upstream merges) -->
   <ItemGroup>
     <Compile Remove="**/*.Designer.cs" />
-    <Compile Include="Properties/Resources.Ported.cs" />
   </ItemGroup>
   
   <ItemGroup>

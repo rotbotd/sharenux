@@ -81,6 +81,75 @@ namespace System.Windows.Forms
     }
 
     public enum MouseButtons { None = 0, Left = 1, Right = 2, Middle = 4 }
+
+    public enum MessageBoxButtons
+    {
+        OK = 0,
+        OKCancel = 1,
+        AbortRetryIgnore = 2,
+        YesNoCancel = 3,
+        YesNo = 4,
+        RetryCancel = 5
+    }
+
+    public enum MessageBoxIcon
+    {
+        None = 0,
+        Error = 16,
+        Hand = 16,
+        Stop = 16,
+        Question = 32,
+        Exclamation = 48,
+        Warning = 48,
+        Information = 64,
+        Asterisk = 64
+    }
+
+    public enum DialogResult
+    {
+        None = 0,
+        OK = 1,
+        Cancel = 2,
+        Abort = 3,
+        Retry = 4,
+        Ignore = 5,
+        Yes = 6,
+        No = 7
+    }
+
+    public enum SortOrder
+    {
+        None = 0,
+        Ascending = 1,
+        Descending = 2
+    }
+
+    public enum FormWindowState
+    {
+        Normal = 0,
+        Minimized = 1,
+        Maximized = 2
+    }
+
+    public class FormClosingEventArgs : EventArgs
+    {
+        public bool Cancel { get; set; }
+        public CloseReason CloseReason { get; }
+        public FormClosingEventArgs(CloseReason closeReason, bool cancel) { CloseReason = closeReason; Cancel = cancel; }
+    }
+
+    public enum CloseReason
+    {
+        None = 0,
+        WindowsShutDown = 1,
+        MdiFormClosing = 2,
+        UserClosing = 3,
+        TaskManagerClosing = 4,
+        FormOwnerClosing = 5,
+        ApplicationExitCall = 6
+    }
+
+    public delegate void FormClosingEventHandler(object sender, FormClosingEventArgs e);
 }
 
 namespace System.Drawing

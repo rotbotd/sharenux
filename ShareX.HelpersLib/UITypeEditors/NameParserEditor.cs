@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,23 +23,20 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia.Controls;
 using System;
-using System.ComponentModel;
 
 namespace ShareX.HelpersLib
 {
-    public class NameParserEditor : UITypeEditor
+    /// <summary>
+    /// Name parser editor for property editing. In Avalonia, this shows a CodeMenu
+    /// attached to a TextBox for inserting format codes.
+    /// </summary>
+    public class NameParserEditor
     {
-        public override UITypeEditorEditStyle GetEditStyle(ITypeDescriptorContext context)
+        public static void AttachToTextBox(TextBox textBox)
         {
-            return UITypeEditorEditStyle.Modal;
-        }
-
-        public override object EditValue(ITypeDescriptorContext context, IServiceProvider provider, object value)
-        {
-            Point pos = Cursor.Position;
-            CodeMenu.Create<CodeMenuEntryFilename>(null, CodeMenuEntryFilename.t, CodeMenuEntryFilename.pn).Show(pos.X, pos.Y);
-            return value;
+            CodeMenu.Create<CodeMenuEntryFilename>(textBox, CodeMenuEntryFilename.t, CodeMenuEntryFilename.pn);
         }
     }
 }

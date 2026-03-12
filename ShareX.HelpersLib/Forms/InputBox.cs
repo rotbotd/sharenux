@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -23,13 +23,25 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
+using ShareX.HelpersLib.Properties;
 using System;
+using System.Threading.Tasks;
 
 namespace ShareX.HelpersLib
 {
-    public class InputBox : Form
+    public class InputBox : Window
     {
         public string InputText { get; private set; }
+
+        private TextBox txtInputText;
+        private Button btnOK;
+        private Button btnCancel;
+        private DialogResult dialogResult = DialogResult.Cancel;
 
         private InputBox(string title, string inputText = null, string okText = null, string cancelText = null)
         {
@@ -38,112 +50,117 @@ namespace ShareX.HelpersLib
 
             InputText = inputText;
 
-            Text = "ShareX - " + title;
-            if (!string.IsNullOrEmpty(InputText)) txtInputText.Text = InputText;
-            if (!string.IsNullOrEmpty(okText)) btnOK.Text = okText;
-            if (!string.IsNullOrEmpty(cancelText)) btnCancel.Text = cancelText;
-        }
-
-        public static string Show(string title, string inputText = null, string okText = null, string cancelText = null)
-        {
-            using (InputBox form = new InputBox(title, inputText, okText, cancelText))
-            {
-                if (form.ShowDialog() == DialogResult.OK)
-                {
-                    return form.InputText;
-                }
-
-                return null;
-            }
-        }
-
-        private void InputBox_Shown(object sender, EventArgs e)
-        {
-            this.ForceActivate();
-            MinimumSize = new Size(384, Size.Height);
-            MaximumSize = new Size(1000, Size.Height);
-
-            txtInputText.SelectionLength = txtInputText.Text.Length;
-        }
-
-        private void btnOK_Click(object sender, EventArgs e)
-        {
-            InputText = txtInputText.Text;
-
-            DialogResult = DialogResult.OK;
-            Close();
-        }
-
-        private void btnCancel_Click(object sender, EventArgs e)
-        {
-            DialogResult = DialogResult.Cancel;
-            Close();
-        }
-
-        #region Windows Form Designer generated code
-
-        private System.ComponentModel.IContainer components = null;
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
+            Title = "ShareX - " + title;
+            if (!string.IsNullOrEmpty(InputText))
+                txtInputText.Text = InputText;
+            if (!string.IsNullOrEmpty(okText))
+                btnOK.Content = okText;
+            if (!string.IsNullOrEmpty(cancelText))
+                btnCancel.Content = cancelText;
         }
 
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(InputBox));
-            btnOK = new Button();
-            btnCancel = new Button();
-            txtInputText = new TextBox();
-            SuspendLayout();
-            // 
-            // btnOK
-            // 
-            resources.ApplyResources(btnOK, "btnOK");
-            btnOK.Name = "btnOK";
-            btnOK.UseVisualStyleBackColor = true;
-            btnOK.Click += btnOK_Click;
-            // 
-            // btnCancel
-            // 
-            resources.ApplyResources(btnCancel, "btnCancel");
-            btnCancel.Name = "btnCancel";
-            btnCancel.UseVisualStyleBackColor = true;
-            btnCancel.Click += btnCancel_Click;
-            // 
-            // txtInputText
-            // 
-            resources.ApplyResources(txtInputText, "txtInputText");
-            txtInputText.Name = "txtInputText";
-            // 
-            // InputBox
-            // 
-            AcceptButton = btnOK;
-            resources.ApplyResources(this, "$this");
-            AutoScaleMode = AutoScaleMode.Font;
-            BackColor = SystemColors.Window;
-            Controls.Add(txtInputText);
-            Controls.Add(btnCancel);
-            Controls.Add(btnOK);
-            MaximizeBox = false;
-            MinimizeBox = false;
-            Name = "InputBox";
-            ShowInTaskbar = false;
-            SizeGripStyle = SizeGripStyle.Hide;
-            TopMost = true;
-            Shown += InputBox_Shown;
-            ResumeLayout(false);
-            PerformLayout();
+            Width = 384;
+            MinWidth = 384;
+            MaxWidth = 1000;
+            SizeToContent = SizeToContent.Height;
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            CanResize = true;
+            Topmost = true;
+
+            var mainPanel = new StackPanel
+            {
+                Margin = new Thickness(10),
+                Spacing = 10
+            };
+
+            txtInputText = new TextBox
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+            txtInputText.KeyDown += TxtInputText_KeyDown;
+            mainPanel.Children.Add(txtInputText);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 10
+            };
+
+            btnOK = new Button
+            {
+                Content = Resources.MyMessageBox_MyMessageBox_OK,
+                Width = 80,
+                Height = 26,
+                HorizontalContentAlignment = HorizontalAlignment.Center
+            };
+            btnOK.Click += BtnOK_Click;
+            buttonPanel.Children.Add(btnOK);
+
+            btnCancel = new Button
+            {
+                Content = Resources.MyMessageBox_MyMessageBox_Cancel,
+                Width = 80,
+                Height = 26,
+                HorizontalContentAlignment = HorizontalAlignment.Center
+            };
+            btnCancel.Click += BtnCancel_Click;
+            buttonPanel.Children.Add(btnCancel);
+
+            mainPanel.Children.Add(buttonPanel);
+
+            Content = mainPanel;
+
+            Opened += InputBox_Opened;
         }
 
-        private System.Windows.Forms.Button btnOK;
-        private System.Windows.Forms.Button btnCancel;
-        private System.Windows.Forms.TextBox txtInputText;
+        private void InputBox_Opened(object sender, EventArgs e)
+        {
+            txtInputText.Focus();
+            txtInputText.SelectAll();
+        }
 
-        #endregion Windows Form Designer generated code
+        private void TxtInputText_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                BtnOK_Click(sender, e);
+            }
+            else if (e.Key == Key.Escape)
+            {
+                BtnCancel_Click(sender, e);
+            }
+        }
+
+        private void BtnOK_Click(object sender, EventArgs e)
+        {
+            InputText = txtInputText.Text;
+            dialogResult = DialogResult.OK;
+            Close();
+        }
+
+        private void BtnCancel_Click(object sender, EventArgs e)
+        {
+            dialogResult = DialogResult.Cancel;
+            Close();
+        }
+
+        public new DialogResult ShowDialog()
+        {
+            base.ShowDialog(null).GetAwaiter().GetResult();
+            return dialogResult;
+        }
+
+        public static string Show(string title, string inputText = null, string okText = null, string cancelText = null)
+        {
+            var form = new InputBox(title, inputText, okText, cancelText);
+            if (form.ShowDialog() == DialogResult.OK)
+            {
+                return form.InputText;
+            }
+            return null;
+        }
     }
 }
