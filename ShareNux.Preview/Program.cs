@@ -20,7 +20,7 @@ class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new DebugWindow();
+            desktop.MainWindow = new PrintTextWindow();
         }
         base.OnFrameworkInitializationCompleted();
     }
